@@ -2,13 +2,6 @@
     "name": "jomweb/billplz-phar",
     "description": "PHP Agnostic library for working with BillPlz API in PHAR",
     "type": "library",
-    "require": {
-        "jomweb/billplz": "^3.0",
-        "php-http/guzzle6-adapter": "^1.1.1"
-    },
-    "require-dev": {
-        "bamarni/composer-bin-plugin": "^1.2"
-    },
     "license": "MIT",
     "authors": [
         {
@@ -16,5 +9,12 @@
             "email": "crynobone@gmail.com"
         }
     ],
+    "require": {
+        "jomweb/billplz": "^3.0",
+        "php-http/guzzle6-adapter": "^1.1.1"
+    },
+    "require-dev": {
+        "bamarni/composer-bin-plugin": "^1.2"
+    },
     "minimum-stability": "stable"
 }
