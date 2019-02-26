@@ -1,0 +1,22 @@
+{
+    "check-requirements": true,
+    "chmod": "0755",
+    "directories": [
+        "vendor"
+    ],
+    "dump-autoload": true,
+    "files": [
+        "index.php",
+        "composer.json",
+        "composer.lock"
+    ],
+    "exclude-composer-files": false,
+    "compression": "NONE",
+    "compactors": [
+        "KevinGH\\Box\\Compactor\\Php",
+        "KevinGH\\Box\\Compactor\\Json"
+    ],
+    "main": "index.php",
+    "output": "billplz.phar",
+    "shebang": false
+}
