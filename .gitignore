@@ -1,6 +1,5 @@
 # Composer
 /vendor/*
-/vendor-bin/*
 
 # Box
 /billplz.phar
