@@ -382,16 +382,16 @@
         },
         {
             "name": "laravie/codex",
-            "version": "v4.0.3",
+            "version": "v4.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex.git",
-                "reference": "3b13e0f80a44d5b4a2c1f762ddf42bdd2d66955e"
+                "reference": "7badaaf68cf016c3283995f56f6428efb1d50982"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex/zipball/3b13e0f80a44d5b4a2c1f762ddf42bdd2d66955e",
-                "reference": "3b13e0f80a44d5b4a2c1f762ddf42bdd2d66955e",
+                "url": "https://api.github.com/repos/laravie/codex/zipball/7badaaf68cf016c3283995f56f6428efb1d50982",
+                "reference": "7badaaf68cf016c3283995f56f6428efb1d50982",
                 "shasum": ""
             },
             "require": {
@@ -434,7 +434,7 @@
                 }
             ],
             "description": "PHP library for building API Client SDK for PHP",
-            "time": "2019-01-29T05:09:47+00:00"
+            "time": "2019-02-26T11:47:27+00:00"
         },
         {
             "name": "moneyphp/money",

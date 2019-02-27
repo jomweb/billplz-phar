@@ -1,4 +1,9 @@
 {
+    "banner": [
+        "This file is part of the Billplz for PHP.",
+        "",
+        "@link https://github.com/jomweb/billplz"
+    ],
     "check-requirements": true,
     "chmod": "0755",
     "directories": [
@@ -8,7 +13,7 @@
     "files": [
         "index.php",
         "composer.json",
-        "composer.lock"
+        "LICENSE"
     ],
     "exclude-composer-files": false,
     "compression": "NONE",
