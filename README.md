@@ -6,7 +6,7 @@ PHP framework agnostic library for working with BillPlz API v3 and beyond in PHA
 
 ## Installation
 
-The preferred method of installation is to use the Billplz PHAR which can be downloaded from the most recent [Github Release](https://github.com/jomweb/billplz-phar/releases). This method ensures you will not have any dependency conflict issue.
+The preferred method of installation is to use the Billplz PHAR which can be downloaded from the most recent [GitHub Release](https://github.com/jomweb/billplz/releases). This method ensures you will not have any dependency conflict issue.
 
 You should received `billplz.phar` file which you can include to your project. 
 
