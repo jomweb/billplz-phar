@@ -18,8 +18,17 @@
     },
     "scripts": {
         "compile": [
+            "composer update --no-dev",
             "./vendor/bin/box compile"
         ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "7.1.3"
+        }
     },
     "minimum-stability": "stable"
 }
