@@ -72,7 +72,7 @@ final class Versions
   'ulrichsg/getopt-php' => '3.2.2@9df490db25bd192d074f5de4210e232a8ddbeda0',
   'webmozart/assert' => '1.4.0@83e253c8e0be5b0257b881e1827274667c5c17a9',
   'webmozart/path-util' => '2.3.0@d939f7edc24c9a1bb9c0dee5cb05d8e859490725',
-  '__root__' => 'No version set (parsed as 1.0.0)@',
+  '__root__' => 'dev-master@cc34d1e0c939040f81f9e6e74af243800f2caaa5',
 );
 
     private function __construct()
