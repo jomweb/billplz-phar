@@ -338,28 +338,28 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v3.0.1",
+            "version": "v3.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "432fb30f2a4198bb3b29a6097435e510d2850302"
+                "reference": "b3c085f652521108f7a8eb0d9bb7e6423acd20b7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/432fb30f2a4198bb3b29a6097435e510d2850302",
-                "reference": "432fb30f2a4198bb3b29a6097435e510d2850302",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/b3c085f652521108f7a8eb0d9bb7e6423acd20b7",
+                "reference": "b3c085f652521108f7a8eb0d9bb7e6423acd20b7",
                 "shasum": ""
             },
             "require": {
-                "jomweb/ringgit": "^2.0",
+                "jomweb/ringgit": "^2.1",
                 "laravie/codex": "^4.0",
                 "php": ">=7.1",
                 "php-http/multipart-stream-builder": "^1.0"
             },
             "require-dev": {
                 "mockery/mockery": "^1.0",
-                "php-http/curl-client": "^1.7",
-                "phpunit/phpunit": "^7.0"
+                "php-http/curl-client": "^1.7 || ^2.0",
+                "phpunit/phpunit": "^7.5"
             },
             "type": "library",
             "extra": {
@@ -383,7 +383,7 @@
                 }
             ],
             "description": "PHP Agnostic library for working with BillPlz API",
-            "time": "2019-03-02T10:19:02+00:00"
+            "time": "2019-03-31T00:08:34+00:00"
         },
         {
             "name": "jomweb/ringgit",
