@@ -12,10 +12,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
+use function KevinGH\Box\register_aliases;
+use Opis\Closure\ClosureStream;
 use org\bovigo\vfs\vfsStreamWrapper;
 
-$loader = require __DIR__.'/../src/bootstrap.php';
-
-restore_error_handler();
+register_aliases();
 
 vfsStreamWrapper::register();
+ClosureStream::register();

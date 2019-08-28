@@ -14,16 +14,16 @@ declare(strict_types=1);
 
 namespace KevinGH\Box\Test;
 
-use KevinGH\Box\Console\Application;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Output\StreamOutput;
-use Symfony\Component\Console\Tester\CommandTester;
-use const PHP_EOL;
 use function feof;
 use function fgets;
+use KevinGH\Box\Console\Application;
+use const PHP_EOL;
 use function preg_replace;
 use function rewind;
 use function str_replace;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\StreamOutput;
+use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * @private
@@ -36,9 +36,6 @@ abstract class CommandTestCase extends FileSystemTestCase
     /** @var CommandTester */
     protected $commandTester;
 
-    /** @var string the name of the command */
-    private $name;
-
     /**
      * {@inheritdoc}
      */
@@ -48,11 +45,13 @@ abstract class CommandTestCase extends FileSystemTestCase
 
         $this->application = new Application();
 
-        $this->name = $this->getCommand()->getName();
-
         $this->application->add($this->getCommand());
 
-        $this->commandTester = new CommandTester($this->application->get($this->name));
+        $this->commandTester = new CommandTester(
+            $this->application->get(
+                $this->getCommand()->getName()
+            )
+        );
     }
 
     /**

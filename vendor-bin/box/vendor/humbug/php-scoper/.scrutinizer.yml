@@ -1,7 +1,13 @@
 build:
     environment:
         variables:
-            COMPOSER_ROOT_VERSION: '0.10.99'
+            COMPOSER_ROOT_VERSION: '0.12.99'
+
+    nodes:
+        analysis:
+            tests:
+                override:
+                    - php-scrutinizer-run
 
     tests:
         override:

@@ -14,9 +14,9 @@ declare(strict_types=1);
 
 namespace KevinGH\Box\Compactor;
 
-use const JSON_ERROR_NONE;
 use function json_decode;
 use function json_encode;
+use const JSON_ERROR_NONE;
 use function json_last_error;
 
 /**
@@ -39,7 +39,8 @@ final class Json extends FileExtensionCompactor
      */
     protected function compactContent(string $contents): string
     {
-        $decodedContents = json_decode($contents);
+        // TODO: migrate this piece of code once on PHP 7.3
+        $decodedContents = json_decode($contents, false);
 
         if (JSON_ERROR_NONE !== json_last_error()) {
             return $contents;

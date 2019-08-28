@@ -8,9 +8,14 @@ use PhpParser\Lexer\Emulative;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
 use Roave\BetterReflection\Reflector\ClassReflector;
+use Roave\BetterReflection\Reflector\ConstantReflector;
 use Roave\BetterReflection\Reflector\FunctionReflector;
 use Roave\BetterReflection\SourceLocator\Ast\Locator as AstLocator;
 use Roave\BetterReflection\SourceLocator\Ast\Parser\MemoizingParser;
+use Roave\BetterReflection\SourceLocator\SourceStubber\AggregateSourceStubber;
+use Roave\BetterReflection\SourceLocator\SourceStubber\PhpStormStubsSourceStubber;
+use Roave\BetterReflection\SourceLocator\SourceStubber\ReflectionSourceStubber;
+use Roave\BetterReflection\SourceLocator\SourceStubber\SourceStubber;
 use Roave\BetterReflection\SourceLocator\Type\AggregateSourceLocator;
 use Roave\BetterReflection\SourceLocator\Type\AutoloadSourceLocator;
 use Roave\BetterReflection\SourceLocator\Type\EvaledCodeSourceLocator;
@@ -30,6 +35,9 @@ final class BetterReflection
     /** @var FunctionReflector|null */
     private $functionReflector;
 
+    /** @var ConstantReflector|null */
+    private $constantReflector;
+
     /** @var Parser|null */
     private $phpParser;
 
@@ -39,15 +47,19 @@ final class BetterReflection
     /** @var FindReflectionOnLine|null */
     private $findReflectionOnLine;
 
+    /** @var SourceStubber */
+    private $sourceStubber;
+
     public function sourceLocator() : SourceLocator
     {
-        $astLocator = $this->astLocator();
+        $astLocator    = $this->astLocator();
+        $sourceStubber = $this->sourceStubber();
 
         return $this->sourceLocator
             ?? $this->sourceLocator = new MemoizingSourceLocator(new AggregateSourceLocator([
-                new PhpInternalSourceLocator($astLocator),
-                new EvaledCodeSourceLocator($astLocator),
-                new AutoloadSourceLocator($astLocator),
+                new PhpInternalSourceLocator($astLocator, $sourceStubber),
+                new EvaledCodeSourceLocator($astLocator, $sourceStubber),
+                new AutoloadSourceLocator($astLocator, $this->phpParser()),
             ]));
     }
 
@@ -63,6 +75,12 @@ final class BetterReflection
             ?? $this->functionReflector = new FunctionReflector($this->sourceLocator(), $this->classReflector());
     }
 
+    public function constantReflector() : ConstantReflector
+    {
+        return $this->constantReflector
+            ?? $this->constantReflector = new ConstantReflector($this->sourceLocator(), $this->classReflector());
+    }
+
     public function phpParser() : Parser
     {
         return $this->phpParser
@@ -76,12 +94,23 @@ final class BetterReflection
     public function astLocator() : AstLocator
     {
         return $this->astLocator
-            ?? $this->astLocator = new AstLocator($this->phpParser());
+            ?? $this->astLocator = new AstLocator($this->phpParser(), function () : FunctionReflector {
+                return $this->functionReflector();
+            });
     }
 
     public function findReflectionsOnLine() : FindReflectionOnLine
     {
         return $this->findReflectionOnLine
             ?? $this->findReflectionOnLine = new FindReflectionOnLine($this->sourceLocator(), $this->astLocator());
+    }
+
+    public function sourceStubber() : SourceStubber
+    {
+        return $this->sourceStubber
+            ?? $this->sourceStubber = new AggregateSourceStubber(
+                new PhpStormStubsSourceStubber($this->phpParser()),
+                new ReflectionSourceStubber()
+            );
     }
 }

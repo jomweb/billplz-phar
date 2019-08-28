@@ -16,6 +16,8 @@ namespace KevinGH\Box\PhpScoper;
 
 use Humbug\PhpScoper\Whitelist;
 use PHPUnit\Framework\TestCase;
+use function serialize;
+use function unserialize;
 
 /**
  * @covers \KevinGH\Box\PhpScoper\NullScoper
@@ -32,9 +34,7 @@ class NullScoperTest extends TestCase
 }
 JSON;
 
-        $scoper = new NullScoper();
-
-        $actual = $scoper->scope($file, $contents);
+        $actual = (new NullScoper())->scope($file, $contents);
 
         $this->assertSame($contents, $actual);
     }
@@ -45,5 +45,15 @@ JSON;
 
         $this->assertSame('', $scoper->getPrefix());
         $this->assertEquals(Whitelist::create(true, true, true), $scoper->getWhitelist());
+    }
+
+    public function test_it_is_serializable(): void
+    {
+        $scoper = new NullScoper();
+
+        $this->assertEquals(
+            $scoper,
+            unserialize(serialize($scoper))
+        );
     }
 }

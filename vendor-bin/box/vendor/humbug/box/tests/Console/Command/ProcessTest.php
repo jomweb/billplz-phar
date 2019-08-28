@@ -15,12 +15,12 @@ declare(strict_types=1);
 namespace KevinGH\Box\Console\Command;
 
 use KevinGH\Box\Console\DisplayNormalizer;
-use KevinGH\Box\Test\CommandTestCase;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Output\OutputInterface;
 use function KevinGH\Box\FileSystem\dump_file;
 use function KevinGH\Box\FileSystem\touch;
+use KevinGH\Box\Test\CommandTestCase;
 use function preg_replace;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * @covers \KevinGH\Box\Console\Command\Process
@@ -197,6 +197,12 @@ PHP
             $actual
         );
 
+        $actual = preg_replace(
+            '/ \{#\d{3,}/',
+            ' {#140',
+            $actual
+        );
+
         $expectedPath = $this->tmp.'/index.php';
 
         $expected = <<<OUTPUT
@@ -220,6 +226,24 @@ Processed contents:
 namespace _Prefix;
 
 echo '!dlrow olleH';
+
+"""
+
+Whitelist:
+
+"""
+Humbug\PhpScoper\Whitelist {#140
+  -original: []
+  -symbols: []
+  -constants: []
+  -namespaces: []
+  -patterns: []
+  -whitelistGlobalConstants: true
+  -whitelistGlobalClasses: true
+  -whitelistGlobalFunctions: true
+  -whitelistedFunctions: []
+  -whitelistedClasses: []
+}
 
 """
 

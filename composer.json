@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "jomweb/billplz": "~3.1.0",
+        "jomweb/billplz": "3.2.0",
         "php-http/guzzle6-adapter": "^2.0"
     },
     "require-dev": {
@@ -18,8 +18,9 @@
     },
     "scripts": {
         "compile": [
-            "composer update --no-dev",
-            "./vendor/bin/box compile"
+            "composer install --no-dev",
+            "./vendor/bin/box compile",
+            "composer install"
         ]
     },
     "config": {

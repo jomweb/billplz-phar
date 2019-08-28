@@ -152,6 +152,7 @@ class ReflectionMethod extends ReflectionFunctionAbstract
         $val += $this->isPrivate() ? CoreReflectionMethod::IS_PRIVATE : 0;
         $val += $this->isAbstract() ? CoreReflectionMethod::IS_ABSTRACT : 0;
         $val += $this->isFinal() ? CoreReflectionMethod::IS_FINAL : 0;
+
         return $val;
     }
 
@@ -249,11 +250,6 @@ class ReflectionMethod extends ReflectionFunctionAbstract
     public function getImplementingClass() : ReflectionClass
     {
         return $this->implementingClass;
-    }
-
-    public function getExtensionName() : ?string
-    {
-        return $this->getDeclaringClass()->getExtensionName();
     }
 
     public function isInternal() : bool

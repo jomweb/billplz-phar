@@ -16,9 +16,17 @@
 /fixtures/build/dir011/*.phar
 /fixtures/build/dir011/*output
 /fixtures/build/dir011/phar-Y.php
+/fixtures/build/dir012/bin/console.phar
+/fixtures/build/dir012/actual-output
+/fixtures/build/dir012/expected-output
 /fixtures/check-requirements/*/actual-output
 /fixtures/check-requirements/*/expected-output-*
 /fixtures/check-requirements/*/*.phar
+/fixtures/php-settings-checker/*
+!/fixtures/php-settings-checker/index.php
+!/fixtures/php-settings-checker/output-*
+/fixtures/php-settings-checker/output-xdebug-enabled
+!/fixtures/php-settings-checker/create-expected-output
 /.phpunit*
 /.requirement-checker/
 /requirement-checker/bin/*
@@ -27,6 +35,8 @@
 /requirement-checker/.box/
 /requirement-checker/tests/DisplayNormalizer.php
 /requirement-checker/vendor/
+/requirement-checker/.phpunit*
+/composer.lock
 /vendor/
 /vendor-bin/*/composer.lock
 /vendor-bin/*/vendor/

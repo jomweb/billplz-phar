@@ -14,24 +14,39 @@ declare(strict_types=1);
 
 namespace KevinGH\Box;
 
-use Assert\Assertion;
-use PackageVersions\Versions;
-use Phar;
 use function array_key_exists;
+use Assert\Assertion;
 use function bin2hex;
 use function class_alias;
 use function class_exists;
+use Closure;
 use function constant;
 use function define;
 use function defined;
+use ErrorException;
 use function floor;
+use function function_exists;
+use KevinGH\Box\Console\IO\IO;
+use KevinGH\Box\Console\Php\PhpSettingsHandler;
+use function KevinGH\Box\FileSystem\copy;
 use function log;
 use function number_format;
+use PackageVersions\Versions;
+use Phar;
+use function posix_getrlimit;
+use function posix_setrlimit;
 use function random_bytes;
 use function sprintf;
+use function str_replace;
 use function strlen;
 use function strtolower;
+use Symfony\Component\Console\Helper\Helper;
+use Symfony\Component\Console\Logger\ConsoleLogger;
+use Symfony\Component\Console\Output\OutputInterface;
 
+/**
+ * @private
+ */
 function get_box_version(): string
 {
     $rawVersion = Versions::getVersion('humbug/box');
@@ -44,7 +59,7 @@ function get_box_version(): string
 /**
  * @private
  *
- * @return <string, int>
+ * @return array<string,int>
  */
 function get_phar_compression_algorithms(): array
 {
@@ -57,6 +72,9 @@ function get_phar_compression_algorithms(): array
     return $algorithms;
 }
 
+/**
+ * @private
+ */
 function get_phar_compression_algorithm_extension(int $algorithm): ?string
 {
     static $extensions = [
@@ -76,7 +94,7 @@ function get_phar_compression_algorithm_extension(int $algorithm): ?string
 /**
  * @private
  *
- * @return <string, int>
+ * @return array<string,int>
  */
 function get_phar_signing_algorithms(): array
 {
@@ -91,8 +109,15 @@ function get_phar_signing_algorithms(): array
     return $algorithms;
 }
 
-function format_size(int $size): string
+/**
+ * @private
+ */
+function format_size(int $size, int $decimals = 2): string
 {
+    if (-1 === $size) {
+        return '-1';
+    }
+
     $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
 
     $power = $size > 0 ? (int) floor(log($size, 1024)) : 0;
@@ -101,7 +126,7 @@ function format_size(int $size): string
         '%s%s',
         number_format(
             $size / (1024 ** $power),
-            2,
+            $decimals,
             '.',
             ','
         ),
@@ -109,11 +134,15 @@ function format_size(int $size): string
     );
 }
 
+/**
+ * @private
+ */
 function memory_to_bytes(string $value): int
 {
     $unit = strtolower($value[strlen($value) - 1]);
 
     $bytes = (int) $value;
+
     switch ($unit) {
         case 'g':
             $bytes *= 1024;
@@ -128,6 +157,21 @@ function memory_to_bytes(string $value): int
     return $bytes;
 }
 
+/**
+ * @private
+ */
+function format_time(float $secs): string
+{
+    return str_replace(
+        ' ',
+        '',
+        Helper::formatTime($secs)
+    );
+}
+
+/**
+ * @private
+ */
 function register_aliases(): void
 {
     // Exposes the finder used by PHP-Scoper PHAR to allow its usage in the configuration file.
@@ -145,6 +189,9 @@ function register_aliases(): void
     }
 }
 
+/**
+ * @private
+ */
 function disable_parallel_processing(): void
 {
     if (false === defined(_NO_PARALLEL_PROCESSING)) {
@@ -152,6 +199,9 @@ function disable_parallel_processing(): void
     }
 }
 
+/**
+ * @private
+ */
 function is_parallel_processing_enabled(): bool
 {
     return false === defined(_NO_PARALLEL_PROCESSING) || false === constant(_NO_PARALLEL_PROCESSING);
@@ -160,9 +210,121 @@ function is_parallel_processing_enabled(): bool
 /**
  * @private
  *
- * @return string Random 12 charactres long (plus the prefix) string composed of a-z characters and digits
+ * @return string Random 12 characters long (plus the prefix) string composed of a-z characters and digits
  */
 function unique_id(string $prefix): string
 {
     return $prefix.bin2hex(random_bytes(6));
+}
+
+/**
+ * @private
+ */
+function create_temporary_phar(string $file): string
+{
+    $tmpFile = sys_get_temp_dir().'/'.unique_id('').basename($file);
+
+    if ('' === pathinfo($file, PATHINFO_EXTENSION)) {
+        $tmpFile .= '.phar';
+    }
+
+    copy($file, $tmpFile, true);
+
+    return $tmpFile;
+}
+
+/**
+ * @private
+ */
+function check_php_settings(IO $io): void
+{
+    (new PhpSettingsHandler(
+        new ConsoleLogger(
+            $io->getOutput()
+        )
+    ))->check();
+}
+
+/**
+ * @private
+ */
+function noop(): Closure
+{
+    return static function (): void {};
+}
+
+/**
+ * Converts errors to exceptions.
+ *
+ * @private
+ */
+function register_error_handler(): void
+{
+    set_error_handler(
+        static function (int $code, string $message, string $file = '', int $line = -1): void {
+            if (error_reporting() & $code) {
+                throw new ErrorException($message, 0, $code, $file, $line);
+            }
+        }
+    );
+}
+
+/**
+ * Bumps the maximum number of open file descriptor if necessary.
+ *
+ * @return Closure callable to call to restore the original maximum number of open files descriptors
+ */
+function bump_open_file_descriptor_limit(Box $box, IO $io): Closure
+{
+    $filesCount = count($box) + 128;  // Add a little extra for good measure
+
+    if (false === function_exists('posix_getrlimit') || false === function_exists('posix_setrlimit')) {
+        $io->writeln(
+            '<info>[debug] Could not check the maximum number of open file descriptors: the functions "posix_getrlimit()" and '
+            .'"posix_setrlimit" could not be found.</info>',
+            OutputInterface::VERBOSITY_DEBUG
+        );
+
+        return static function (): void {};
+    }
+
+    $softLimit = posix_getrlimit()['soft openfiles'];
+    $hardLimit = posix_getrlimit()['hard openfiles'];
+
+    if ($softLimit >= $filesCount) {
+        return static function (): void {};
+    }
+
+    $io->writeln(
+        sprintf(
+            '<info>[debug] Increased the maximum number of open file descriptors from ("%s", "%s") to ("%s", "%s")'
+            .'</info>',
+            $softLimit,
+            $hardLimit,
+            $filesCount,
+            'unlimited'
+        ),
+        OutputInterface::VERBOSITY_DEBUG
+    );
+
+    posix_setrlimit(
+        POSIX_RLIMIT_NOFILE,
+        $filesCount,
+        'unlimited' === $hardLimit ? POSIX_RLIMIT_INFINITY : $hardLimit
+    );
+
+    return static function () use ($io, $softLimit, $hardLimit): void {
+        if (function_exists('posix_setrlimit') && isset($softLimit, $hardLimit)) {
+            posix_setrlimit(
+                POSIX_RLIMIT_NOFILE,
+                $softLimit,
+                'unlimited' === $hardLimit ? POSIX_RLIMIT_INFINITY : $hardLimit
+            );
+
+            $io->writeln(
+                '<info>[debug] Restored the maximum number of open file descriptors</info>',
+                OutputInterface::VERBOSITY_DEBUG
+            );
+        }
+    };
 }

@@ -51,13 +51,13 @@ final class ResourceOutputStream implements OutputStream
         \stream_set_write_buffer($stream, 0);
 
         $this->resource = $stream;
-        $this->chunkSize = $chunkSize;
+        $this->chunkSize = &$chunkSize;
 
         $writes = $this->writes = new \SplQueue;
         $writable = &$this->writable;
         $resource = &$this->resource;
 
-        $this->watcher = Loop::onWritable($stream, static function ($watcher, $stream) use ($writes, $chunkSize, &$writable, &$resource) {
+        $this->watcher = Loop::onWritable($stream, static function ($watcher, $stream) use ($writes, &$chunkSize, &$writable, &$resource) {
             static $emptyWrites = 0;
 
             try {
@@ -71,8 +71,8 @@ final class ResourceOutputStream implements OutputStream
                         continue;
                     }
 
-                    if (!\is_resource($stream) || @\feof($stream)) {
-                        throw new StreamException("The stream was closed by the peer");
+                    if (!\is_resource($stream) || (($metaData = @\stream_get_meta_data($stream)) && $metaData['eof'])) {
+                        throw new ClosedException("The stream was closed by the peer");
                     }
 
                     // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
@@ -179,8 +179,8 @@ final class ResourceOutputStream implements OutputStream
                 return new Success(0);
             }
 
-            if (!\is_resource($this->resource) || @\feof($this->resource)) {
-                return new Failure(new StreamException("The stream was closed by the peer"));
+            if (!\is_resource($this->resource) || (($metaData = @\stream_get_meta_data($this->resource)) && $metaData['eof'])) {
+                return new Failure(new ClosedException("The stream was closed by the peer"));
             }
 
             // Error reporting suppressed since fwrite() emits E_WARNING if the pipe is broken or the buffer is full.
@@ -272,6 +272,11 @@ final class ResourceOutputStream implements OutputStream
     public function getResource()
     {
         return $this->resource;
+    }
+
+    public function setChunkSize(int $chunkSize)
+    {
+        $this->chunkSize = $chunkSize;
     }
 
     public function __destruct()

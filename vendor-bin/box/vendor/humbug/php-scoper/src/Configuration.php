@@ -27,7 +27,6 @@ use function array_unshift;
 use function dirname;
 use function file_exists;
 use function gettype;
-use function in_array;
 use function is_array;
 use function is_bool;
 use function is_file;
@@ -37,11 +36,7 @@ use function readlink;
 use function realpath;
 use function sprintf;
 
-/**
- * @final
- * TODO: make this class as final as soon as the underlying deprecated class is removed.
- */
-class Configuration
+final class Configuration
 {
     private const PREFIX_KEYWORD = 'prefix';
     private const WHITELISTED_FILES_KEYWORD = 'files-whitelist';
@@ -242,7 +237,7 @@ class Configuration
     private static function validateConfigKeys(array $config): void
     {
         array_map(
-            self::class.'::validateConfigKey',
+            [self::class, 'validateConfigKey'],
             array_keys($config)
         );
     }
@@ -524,7 +519,7 @@ class Configuration
     private static function retrieveFilesWithContents(Iterator $files): array
     {
         return array_reduce(
-            iterator_to_array($files),
+            iterator_to_array($files, false),
             static function (array $files, SplFileInfo $fileInfo): array {
                 $file = $fileInfo->getRealPath();
 

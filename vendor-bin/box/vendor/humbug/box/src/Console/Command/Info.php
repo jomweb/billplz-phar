@@ -14,66 +14,54 @@ declare(strict_types=1);
 
 namespace KevinGH\Box\Console\Command;
 
+use function array_filter;
+use function array_flip;
 use Assert\Assertion;
 use DirectoryIterator;
+use function is_array;
+use KevinGH\Box\Console\IO\IO;
+use KevinGH\Box\Console\PharInfoRenderer;
+use function KevinGH\Box\create_temporary_phar;
+use function KevinGH\Box\FileSystem\remove;
+use function KevinGH\Box\format_size;
+use function KevinGH\Box\get_phar_compression_algorithms;
+use KevinGH\Box\PharInfo\PharInfo;
 use Phar;
 use PharData;
 use PharFileInfo;
-use RecursiveIteratorIterator;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Throwable;
-use UnexpectedValueException;
-use function array_fill_keys;
-use function array_filter;
-use function array_reduce;
-use function array_sum;
-use function count;
-use function end;
-use function filesize;
-use function is_array;
-use function iterator_to_array;
-use function KevinGH\Box\FileSystem\remove;
-use function KevinGH\Box\format_size;
-use function key;
 use function realpath;
 use function sprintf;
 use function str_repeat;
 use function str_replace;
-use function var_export;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Throwable;
 
 /**
  * @private
  */
-final class Info extends Command
+final class Info extends BaseCommand
 {
-    use CreateTemporaryPharFile;
-
     private const PHAR_ARG = 'phar';
     private const LIST_OPT = 'list';
     private const METADATA_OPT = 'metadata';
     private const MODE_OPT = 'mode';
     private const DEPTH_OPT = 'depth';
 
-    /**
-     * The list of recognized compression algorithms.
-     */
-    private const ALGORITHMS = [
-        Phar::BZ2 => 'BZ2',
-        Phar::GZ => 'GZ',
-        Phar::NONE => 'None',
-    ];
+    private static $FILE_ALGORITHMS;
 
     /**
-     * The list of recognized file compression algorithms.
+     * {@inheritdoc}
      */
-    private const FILE_ALGORITHMS = [
-        Phar::BZ2 => 'BZ2',
-        Phar::GZ => 'GZ',
-    ];
+    public function __construct(?string $name = null)
+    {
+        parent::__construct($name);
+
+        if (null === self::$FILE_ALGORITHMS) {
+            self::$FILE_ALGORITHMS = array_flip(array_filter(get_phar_compression_algorithms()));
+        }
+    }
 
     /**
      * {@inheritdoc}
@@ -134,62 +122,58 @@ HELP
     /**
      * {@inheritdoc}
      */
-    public function execute(InputInterface $input, OutputInterface $output): int
+    public function executeCommand(IO $io): int
     {
-        $io = new SymfonyStyle($input, $output);
+        $input = $io->getInput();
+
         $io->newLine();
 
         if (null === ($file = $input->getArgument(self::PHAR_ARG))) {
-            return $this->showGlobalInfo($output, $io);
+            return $this->showGlobalInfo($io);
         }
+        /** @var string $file */
+        $fileRealPath = realpath($file);
 
-        $file = realpath($file);
-
-        if (false === $file) {
+        if (false === $fileRealPath) {
             $io->error(
                 sprintf(
                     'The file "%s" could not be found.',
-                    $input->getArgument(self::PHAR_ARG)
+                    $file
                 )
             );
 
             return 1;
         }
 
-        $tmpFile = $this->createTemporaryPhar($file);
+        $tmpFile = create_temporary_phar($fileRealPath);
 
         try {
-            return $this->showInfo($tmpFile, $file, $input, $output, $io);
+            return $this->showInfo($tmpFile, $fileRealPath, $io);
         } finally {
-            if ($file !== $tmpFile) {
-                remove($tmpFile);
-            }
+            remove($tmpFile);
         }
     }
 
-    public function showInfo(string $file, string $originalFile, InputInterface $input, OutputInterface $output, SymfonyStyle $io): int
+    public function showInfo(string $file, string $originalFile, IO $io): int
     {
+        $input = $io->getInput();
+
         $depth = (int) $input->getOption(self::DEPTH_OPT);
 
         Assertion::greaterOrEqualThan($depth, -1, 'Expected the depth to be a positive integer or -1, got "%d"');
 
         try {
-            try {
-                $phar = new Phar($file);
-            } catch (UnexpectedValueException $exception) {
-                $phar = new PharData($file);
-            }
+            $pharInfo = new PharInfo($file);
 
             return $this->showPharInfo(
-                $phar,
+                $pharInfo,
                 $input->getOption(self::LIST_OPT),
                 $depth,
                 'indent' === $input->getOption(self::MODE_OPT),
-                $output,
                 $io
             );
         } catch (Throwable $throwable) {
-            if ($output->isDebug()) {
+            if ($io->isDebug()) {
                 throw $throwable;
             }
 
@@ -204,10 +188,10 @@ HELP
         }
     }
 
-    private function showGlobalInfo(OutputInterface $output, SymfonyStyle $io): int
+    private function showGlobalInfo(IO $io): int
     {
         $this->render(
-            $output,
+            $io,
             [
                 'API Version' => Phar::apiVersion(),
                 'Supported Compression' => Phar::getSupportedCompression(),
@@ -221,33 +205,25 @@ HELP
         return 0;
     }
 
-    /**
-     * @param Phar|PharData $phar
-     */
     private function showPharInfo(
-        $phar,
+        PharInfo $pharInfo,
         bool $content,
         int $depth,
         bool $indent,
-        OutputInterface $output,
-        SymfonyStyle $io
+        IO $io
     ): int {
-        $signature = $phar->getSignature();
-
-        $this->showPharGlobalInfo($phar, $io, $signature);
+        $this->showPharMeta($pharInfo, $io);
 
         if ($content) {
-            $root = 'phar://'.str_replace('\\', '/', realpath($phar->getPath())).'/';
-
             $this->renderContents(
-                $output,
-                $phar,
+                $io,
+                $pharInfo->getPhar(),
                 0,
                 $depth,
                 $indent ? 0 : false,
-                $root,
-                $phar,
-                $root
+                $pharInfo->getRoot(),
+                $pharInfo->getPhar(),
+                $pharInfo->getRoot()
             );
         } else {
             $io->comment('Use the <info>--list|-l</info> option to list the content of the PHAR.');
@@ -256,114 +232,51 @@ HELP
         return 0;
     }
 
-    /**
-     * @param Phar|PharData $phar
-     * @param mixed         $signature
-     */
-    private function showPharGlobalInfo($phar, SymfonyStyle $io, $signature): void
+    private function showPharMeta(PharInfo $pharInfo, IO $io): void
     {
         $io->writeln(
             sprintf(
                 '<comment>API Version:</comment> %s',
-                '' !== $phar->getVersion() ? $phar->getVersion() : 'No information found'
+                $pharInfo->getVersion()
             )
         );
+
         $io->newLine();
 
-        $count = array_filter($this->retrieveCompressionCount($phar));
-        $totalCount = array_sum($count);
+        PharInfoRenderer::renderCompression($pharInfo, $io);
 
-        if (1 === count($count)) {
-            $io->writeln(
-                sprintf(
-                    '<comment>Archive Compression:</comment> %s',
-                    key($count)
-                )
-            );
-        } else {
-            $io->writeln('<comment>Archive Compression:</comment>');
-
-            end($count);
-            $lastAlgorithmName = key($count);
-
-            $totalPercentage = 100;
-
-            foreach ($count as $algorithmName => $nbrOfFiles) {
-                if ($lastAlgorithmName === $algorithmName) {
-                    $percentage = $totalPercentage;
-                } else {
-                    $percentage = $nbrOfFiles * 100 / $totalCount;
-
-                    $totalPercentage -= $percentage;
-                }
-
-                $io->writeln(
-                    sprintf(
-                        '  - %s (%0.2f%%)',
-                        $algorithmName,
-                        $percentage
-                    )
-                );
-            }
-        }
         $io->newLine();
 
-        if (false !== $signature) {
-            $io->writeln(
-                sprintf(
-                    '<comment>Signature:</comment> %s',
-                    $signature['hash_type']
-                )
-            );
-            $io->writeln(
-                sprintf(
-                    '<comment>Signature Hash:</comment> %s',
-                    $signature['hash']
-                )
-            );
-            $io->newLine();
-        }
+        PharInfoRenderer::renderSignature($pharInfo, $io);
 
-        $metadata = var_export($phar->getMetadata(), true);
-
-        if ('NULL' === $metadata) {
-            $io->writeln('<comment>Metadata:</comment> None');
-        } else {
-            $io->writeln('<comment>Metadata:</comment>');
-            $io->writeln($metadata);
-        }
         $io->newLine();
 
-        $io->writeln(
-            sprintf(
-                '<comment>Contents:</comment>%s (%s)',
-                1 === $totalCount ? ' 1 file' : " $totalCount files",
-                format_size(
-                    filesize($phar->getPath())
-                )
-            )
-        );
+        PharInfoRenderer::renderMetadata($pharInfo, $io);
+
+        $io->newLine();
+
+        PharInfoRenderer::renderContentsSummary($pharInfo, $io);
     }
 
-    private function render(OutputInterface $output, array $attributes): void
+    private function render(IO $io, array $attributes): void
     {
         $out = false;
 
         foreach ($attributes as $name => $value) {
             if ($out) {
-                $output->writeln('');
+                $io->writeln('');
             }
 
-            $output->write("<comment>$name:</comment>");
+            $io->write("<comment>$name:</comment>");
 
             if (is_array($value)) {
-                $output->writeln('');
+                $io->writeln('');
 
                 foreach ($value as $v) {
-                    $output->writeln("  - $v");
+                    $io->writeln("  - $v");
                 }
             } else {
-                $output->writeln(" $value");
+                $io->writeln(" $value");
             }
 
             $out = true;
@@ -371,7 +284,7 @@ HELP
     }
 
     /**
-     * @param iterable|PharFileInfo[] $list
+     * @param iterable&PharFileInfo[] $list
      * @param false|int               $indent Nbr of indent or `false`
      * @param Phar|PharData           $phar
      */
@@ -390,6 +303,7 @@ HELP
         }
 
         foreach ($list as $item) {
+            /** @var PharFileInfo $item */
             $item = $phar[str_replace($root, '', $item->getPathname())];
 
             if (false !== $indent) {
@@ -411,7 +325,7 @@ HELP
             } else {
                 $compression = '<fg=red>[NONE]</fg=red>';
 
-                foreach (self::FILE_ALGORITHMS as $code => $name) {
+                foreach (self::$FILE_ALGORITHMS as $code => $name) {
                     if ($item->isCompressed($code)) {
                         $compression = "<fg=cyan>[$name]</fg=cyan>";
                         break;
@@ -443,46 +357,5 @@ HELP
                 );
             }
         }
-    }
-
-    /**
-     * @param Phar|PharData $phar
-     */
-    private function retrieveCompressionCount($phar): array
-    {
-        $count = array_fill_keys(
-            self::ALGORITHMS,
-            0
-        );
-
-        if ($phar instanceof PharData) {
-            $count[self::ALGORITHMS[$phar->isCompressed()]] = 1;
-
-            return $count;
-        }
-
-        $countFile = static function (array $count, PharFileInfo $file): array {
-            if (false === $file->isCompressed()) {
-                ++$count['None'];
-
-                return $count;
-            }
-
-            foreach (self::ALGORITHMS as $compressionAlgorithmCode => $compressionAlgorithmName) {
-                if ($file->isCompressed($compressionAlgorithmCode)) {
-                    ++$count[$compressionAlgorithmName];
-
-                    return $count;
-                }
-            }
-
-            return $count;
-        };
-
-        return array_reduce(
-            iterator_to_array(new RecursiveIteratorIterator($phar), true),
-            $countFile,
-            $count
-        );
     }
 }

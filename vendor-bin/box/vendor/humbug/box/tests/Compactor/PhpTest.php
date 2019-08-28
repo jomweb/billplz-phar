@@ -12,13 +12,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace KevinGH\Box;
+namespace KevinGH\Box\Compactor;
 
 use Generator;
 use KevinGH\Box\Annotation\AnnotationDumper;
 use KevinGH\Box\Annotation\DocblockAnnotationParser;
 use KevinGH\Box\Annotation\DocblockParser;
-use KevinGH\Box\Compactor\Php;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -60,11 +59,26 @@ PHP;
     public function test_it_compacts_PHP_files(DocblockAnnotationParser $annotationParser, string $content, string $expected): void
     {
         $file = 'foo.php';
-        $compactor = new Php($annotationParser);
 
-        $actual = $compactor->compact($file, $content);
+        $actual = (new Php($annotationParser))->compact($file, $content);
 
         $this->assertSame($expected, $actual);
+    }
+
+    public function test_it_is_serializable(): void
+    {
+        $compactor = new Php(
+            new DocblockAnnotationParser(
+                new DocblockParser(),
+                new AnnotationDumper(),
+                []
+            )
+        );
+
+        $this->assertEquals(
+            $compactor,
+            unserialize(serialize($compactor))
+        );
     }
 
     public function provideFiles(): Generator

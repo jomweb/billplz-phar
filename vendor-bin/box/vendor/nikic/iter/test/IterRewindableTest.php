@@ -3,8 +3,9 @@
 namespace iter;
 
 use iter\rewindable;
+use PHPUnit\Framework\TestCase;
 
-class IterRewindableTest extends \PHPUnit_Framework_TestCase {
+class IterRewindableTest extends TestCase {
     private function assertRewindableEquals($array, $iter, $withKeys = false) {
         $fn = $withKeys ? 'iter\\toArrayWithKeys' : 'iter\\toArray';
         $this->assertSame($array, $fn($iter));
@@ -18,7 +19,7 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
         );
         $this->assertRewindableEquals(
             [3, 6, 9, 12, 15],
-            rewindable\map(fn\operator('*', 3), rewindable\range(1, 5))
+            rewindable\map(func\operator('*', 3), rewindable\range(1, 5))
         );
         $this->assertRewindableEquals(
             ['a' => 1, 'b' => 2, 'c' => 3],
@@ -33,12 +34,24 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
         );
         $this->assertRewindableEquals(
             [2 => 1, 4 => 2, 6 => 3, 8 => 4],
-            rewindable\reindex(fn\operator('*', 2), [1, 2, 3, 4]),
+            rewindable\reindex(func\operator('*', 2), [1, 2, 3, 4]),
             true
         );
         $this->assertRewindableEquals(
             [-5, -4, -3, -2, -1],
-            rewindable\filter(fn\operator('<', 0), rewindable\range(-5, 5))
+            rewindable\filter(func\operator('<', 0), rewindable\range(-5, 5))
+        );
+        $this->assertRewindableEquals(
+            [[0,0], [1,1], [2,2], [3,3], [4,4], [5,5]],
+            rewindable\enumerate(rewindable\range(0, 5))
+        );
+        $this->assertRewindableEquals(
+            [[0,0], [1,1], [2,2], [3,3], [4,4], [5,5]],
+            rewindable\toPairs(rewindable\range(0, 5))
+        );
+        $this->assertRewindableEquals(
+            [0, 1, 2, 3, 4, 5],
+            rewindable\fromPairs([[0,0], [1,1], [2,2], [3,3], [4,4], [5,5]])
         );
         $this->assertRewindableEquals(
             [[0,5], [1,4], [2,3], [3,2], [4,1], [5,0]],
@@ -46,7 +59,7 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
         );
         $this->assertRewindableEquals(
             [1, 3, 6, 10, 15],
-            rewindable\reductions(fn\operator('+'), rewindable\range(1, 5), 0)
+            rewindable\reductions(func\operator('+'), rewindable\range(1, 5), 0)
         );
         $this->assertRewindableEquals(
             [5=>0, 4=>1, 3=>2, 2=>3, 1=>4, 0=>5],
@@ -85,11 +98,11 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
         );
         $this->assertRewindableEquals(
             [3, 1, 4],
-            rewindable\takeWhile(fn\operator('>', 0), [3, 1, 4, -1, 5])
+            rewindable\takeWhile(func\operator('>', 0), [3, 1, 4, -1, 5])
         );
         $this->assertRewindableEquals(
             [-1, 5],
-            rewindable\dropWhile(fn\operator('>', 0), [3, 1, 4, -1, 5])
+            rewindable\dropWhile(func\operator('>', 0), [3, 1, 4, -1, 5])
         );
         $this->assertRewindableEquals(
             [1, 2, 3, 4, 5],
@@ -101,8 +114,12 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
             true
         );
         $this->assertRewindableEquals(
+            [[1, 2], [3, 4], [5]],
+            rewindable\chunk([1, 2, 3, 4, 5], 2)
+        );
+        $this->assertRewindableEquals(
             [['a' => 1, 'b' => 2], ['c' => 3, 'd' => 4], ['e' => 5]],
-            rewindable\chunk(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5], 2),
+            rewindable\chunkWithKeys(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5], 2),
             true
         );
         $this->assertRewindableEquals(
@@ -116,7 +133,7 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
         $map = makeRewindable('iter\\map');
         $this->assertRewindableEquals(
             [3, 6, 9, 12, 15],
-            $map(fn\operator('*', 3), $range(1, 5))
+            $map(func\operator('*', 3), $range(1, 5))
         );
     }
 
@@ -125,7 +142,7 @@ class IterRewindableTest extends \PHPUnit_Framework_TestCase {
             [3, 6, 9, 12, 15],
             callRewindable(
                 'iter\\map',
-                fn\operator('*', 3), callRewindable('iter\\range', 1, 5)
+                func\operator('*', 3), callRewindable('iter\\range', 1, 5)
             )
         );
     }

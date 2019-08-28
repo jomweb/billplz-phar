@@ -19,10 +19,9 @@ use InvalidArgumentException;
 use KevinGH\Box\Test\CommandTestCase;
 use KevinGH\Box\Test\RequiresPharReadonlyOff;
 use Phar;
+use function realpath;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
-use function preg_match;
-use function realpath;
 
 /**
  * @covers \KevinGH\Box\Console\Command\Verify
@@ -160,12 +159,9 @@ OUTPUT;
             'phar' => $pharPath,
         ]);
 
-        $this->assertSame(
-            1,
-            preg_match(
-                '/The PHAR failed the verification: .+/',
-                $this->commandTester->getDisplay(true)
-            ),
+        $this->assertRegExp(
+            '/The PHAR failed the verification: .+/',
+            $this->commandTester->getDisplay(true),
             $this->commandTester->getDisplay(true)
         );
 

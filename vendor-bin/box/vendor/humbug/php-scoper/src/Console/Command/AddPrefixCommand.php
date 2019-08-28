@@ -16,7 +16,7 @@ namespace Humbug\PhpScoper\Console\Command;
 
 use Humbug\PhpScoper\Autoload\ScoperAutoloadGenerator;
 use Humbug\PhpScoper\Configuration;
-use Humbug\PhpScoper\Logger\ConsoleLogger;
+use Humbug\PhpScoper\Console\ScoperLogger;
 use Humbug\PhpScoper\Scoper;
 use Humbug\PhpScoper\Scoper\ConfigurableScoper;
 use Humbug\PhpScoper\Throwable\Exception\ParsingException;
@@ -139,7 +139,7 @@ final class AddPrefixCommand extends BaseCommand
             $this->scoper = $this->scoper->withWhitelistedFiles(...$config->getWhitelistedFiles());
         }
 
-        $logger = new ConsoleLogger(
+        $logger = new ScoperLogger(
             $this->getApplication(),
             $io
         );
@@ -182,7 +182,7 @@ final class AddPrefixCommand extends BaseCommand
         array $patchers,
         Whitelist $whitelist,
         bool $stopOnFailure,
-        ConsoleLogger $logger
+        ScoperLogger $logger
     ): void {
         // Creates output directory if does not already exist
         $this->fileSystem->mkdir($output);
@@ -195,7 +195,8 @@ final class AddPrefixCommand extends BaseCommand
         foreach ($filesWithContents as [$inputFilePath, $inputContents]) {
             $outputFilePath = $output.str_replace($commonPath, '', $inputFilePath);
 
-            if (preg_match('~((?:.*)\/vendor)\/.*~', $outputFilePath, $matches)) {
+            $pattern = '~((?:.*)\\'.DIRECTORY_SEPARATOR.'vendor)\\'.DIRECTORY_SEPARATOR.'.*~';
+            if (preg_match($pattern, $outputFilePath, $matches)) {
                 $vendorDirs[$matches[1]] = true;
             }
 
@@ -223,7 +224,7 @@ final class AddPrefixCommand extends BaseCommand
         $vendorDir = (0 === count($vendorDirs)) ? null : $vendorDirs[0];
 
         if (null !== $vendorDir) {
-            $autoload = (new ScoperAutoloadGenerator($whitelist))->dump($prefix);
+            $autoload = (new ScoperAutoloadGenerator($whitelist))->dump();
 
             $this->fileSystem->dumpFile($vendorDir.'/scoper-autoload.php', $autoload);
         }
@@ -240,7 +241,7 @@ final class AddPrefixCommand extends BaseCommand
         array $patchers,
         Whitelist $whitelist,
         bool $stopOnFailure,
-        ConsoleLogger $logger
+        ScoperLogger $logger
     ): void {
         try {
             $scoppedContent = $this->scoper->scope($inputFilePath, $inputContents, $prefix, $patchers, $whitelist);
@@ -390,7 +391,7 @@ final class AddPrefixCommand extends BaseCommand
         if (null === $configFile) {
             $configFile = $this->makeAbsolutePath(self::CONFIG_FILE_DEFAULT);
 
-            if (false === file_exists($configFile) && false === $this->init) {
+            if (false === $this->init && false === file_exists($configFile)) {
                 $this->init = true;
 
                 $initCommand = $this->getApplication()->find('init');
@@ -477,6 +478,6 @@ final class AddPrefixCommand extends BaseCommand
 
     private function generateRandomPrefix(): string
     {
-        return uniqid('_PhpScoper', false);
+        return '_PhpScoper'.bin2hex(random_bytes(6));
     }
 }

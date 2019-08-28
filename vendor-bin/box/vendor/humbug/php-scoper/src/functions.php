@@ -17,41 +17,36 @@ namespace Humbug\PhpScoper;
 use Humbug\PhpScoper\Console\Application;
 use Humbug\PhpScoper\Console\ApplicationFactory;
 use Iterator;
-use PhpParser\Node;
+use PackageVersions\Versions;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
-use PhpParser\Parser;
-use function array_map;
+use function array_pop;
 use function count;
-use function is_array;
 use function is_object;
-use function is_scalar;
 use function is_string;
 use function method_exists;
-use function serialize;
-use function strlen;
-use function strpos;
+use function str_split;
+use function strrpos;
 use function substr;
-use function unserialize;
 
 function create_application(): Application
 {
     return (new ApplicationFactory())->create();
 }
 
-/**
- * @private
- *
- * @deprecated Will be removed in future releases.
- */
-function create_scoper(): Scoper
+function get_php_scoper_version(): string
 {
-    return (new class() extends ApplicationFactory {
-        public static function createScoper(): Scoper
-        {
-            return parent::createScoper();
-        }
-    })::createScoper();
+    // Since PHP-Scoper relies on COMPOSER_ROOT_VERSION the version parsed by PackageVersions, we rely on Box
+    // placeholders in order to get the right version for the PHAR.
+    if (0 === strpos(__FILE__, 'phar:')) {
+        return '@git_version_placeholder@';
+    }
+
+    $rawVersion = Versions::getVersion('humbug/php-scoper');
+
+    [$prettyVersion, $commitHash] = explode('@', $rawVersion);
+
+    return $prettyVersion.'@'.substr($commitHash, 0, 7);
 }
 
 /**
@@ -61,78 +56,34 @@ function create_scoper(): Scoper
  */
 function get_common_path(array $paths): string
 {
-    if (0 === count($paths)) {
+    $nbPaths = count($paths);
+    if (0 === $nbPaths) {
         return '';
     }
-
-    $lastOffset = 1;
-    $common = DIRECTORY_SEPARATOR;
-
-    while (false !== ($index = strpos($paths[0], DIRECTORY_SEPARATOR, $lastOffset))) {
-        $dirLen = $index - $lastOffset + 1;
-        $dir = substr($paths[0], $lastOffset, $dirLen);
-
-        foreach ($paths as $path) {
-            if (substr($path, $lastOffset, $dirLen) !== $dir) {
-                if (0 < strlen($common) && DIRECTORY_SEPARATOR === $common[strlen($common) - 1]) {
-                    $common = substr($common, 0, -1);
+    $pathRef = array_pop($paths);
+    if (1 === $nbPaths) {
+        $commonPath = $pathRef;
+    } else {
+        $commonPath = '';
+        foreach (str_split($pathRef) as $pos => $char) {
+            foreach ($paths as $path) {
+                if (!isset($path[$pos]) || $path[$pos] !== $char) {
+                    break 2;
                 }
-
-                return $common;
             }
+            $commonPath .= $char;
         }
+    }
+    foreach (['/', '\\'] as $separator) {
+        $lastSeparatorPos = strrpos($commonPath, $separator);
+        if (false !== $lastSeparatorPos) {
+            $commonPath = rtrim(substr($commonPath, 0, $lastSeparatorPos), $separator);
 
-        $common .= $dir;
-        $lastOffset = $index + 1;
+            break;
+        }
     }
 
-    $common = substr($common, 0, -1);
-
-    if (0 < strlen($common) && DIRECTORY_SEPARATOR === $common[strlen($common) - 1]) {
-        $common = substr($common, 0, -1);
-    }
-
-    return $common;
-}
-
-/**
- * In-house clone functions. Does a partial clone that should be enough to provide the immutability required in some
- * places for the scoper. It however does not guarantee a deep cloning as would be horribly slow for no good reasons.
- * A better alternative would be to find a way to push immutability upstream in PHP-Parser directly.
- *
- * @param Node $node
- *
- * @return Node
- */
-function clone_node(Node $node): Node
-{
-    $clone = deep_clone($node);
-
-    foreach ($node->getAttributes() as $key => $attribute) {
-        $clone->setAttribute($key, $attribute);
-    }
-
-    return $clone;
-}
-
-/**
- * @param mixed $node
- *
- * @return mixed
- *
- * @internal
- */
-function deep_clone($node)
-{
-    if (is_array($node)) {
-        return array_map(__FUNCTION__, $node);
-    }
-
-    if (null === $node || is_scalar($node)) {
-        return $node;
-    }
-
-    return unserialize(serialize($node));
+    return $commonPath;
 }
 
 function chain(iterable ...$iterables): Iterator

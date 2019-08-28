@@ -2,6 +2,7 @@
 
 namespace Amp\Parallel\Worker;
 
+use Amp\Parallel\Context\Parallel;
 use Amp\Parallel\Context\Thread;
 
 /**
@@ -43,6 +44,10 @@ final class DefaultWorkerFactory implements WorkerFactory
      */
     public function create(): Worker
     {
+        if (Parallel::isSupported()) {
+            return new WorkerParallel($this->className);
+        }
+
         if (Thread::isSupported()) {
             return new WorkerThread($this->className);
         }

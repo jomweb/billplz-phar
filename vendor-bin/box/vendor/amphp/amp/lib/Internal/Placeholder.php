@@ -22,7 +22,7 @@ trait Placeholder
     /** @var mixed */
     private $result;
 
-    /** @var callable|\Amp\Internal\ResolutionQueue|null */
+    /** @var callable|ResolutionQueue|null */
     private $onResolved;
 
     /** @var null|array */
@@ -128,6 +128,7 @@ trait Placeholder
 
         try {
             $result = $onResolved(null, $this->result);
+            $onResolved = null; // allow garbage collection of $onResolved, to catch any exceptions from destructors
 
             if ($result === null) {
                 return;
@@ -153,5 +154,16 @@ trait Placeholder
     private function fail(\Throwable $reason)
     {
         $this->resolve(new Failure($reason));
+    }
+
+    public function __destruct()
+    {
+        try {
+            $this->result = null;
+        } catch (\Throwable $e) {
+            Loop::defer(static function () use ($e) {
+                throw $e;
+            });
+        }
     }
 }

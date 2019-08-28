@@ -14,38 +14,40 @@ declare(strict_types=1);
 
 namespace KevinGH\Box;
 
-use Assert\Assertion;
-use BadMethodCallException;
-use Countable;
-use KevinGH\Box\Compactor\PhpScoper;
-use KevinGH\Box\Compactor\Placeholder;
-use KevinGH\Box\Composer\ComposerOrchestrator;
-use KevinGH\Box\PhpScoper\NullScoper;
-use KevinGH\Box\PhpScoper\WhitelistManipulator;
-use Phar;
-use RecursiveDirectoryIterator;
-use RuntimeException;
-use SplFileInfo;
+use Amp\MultiReasonException;
 use function Amp\ParallelFunctions\parallelMap;
 use function Amp\Promise\wait;
 use function array_filter;
 use function array_flip;
 use function array_map;
 use function array_unshift;
+use Assert\Assertion;
+use BadMethodCallException;
 use function chdir;
+use Closure;
+use Countable;
 use function dirname;
 use function extension_loaded;
 use function file_exists;
 use function getcwd;
 use function is_object;
+use KevinGH\Box\Compactor\Compactors;
+use KevinGH\Box\Compactor\PhpScoper;
+use KevinGH\Box\Compactor\Placeholder;
 use function KevinGH\Box\FileSystem\dump_file;
 use function KevinGH\Box\FileSystem\file_contents;
 use function KevinGH\Box\FileSystem\make_tmp_dir;
 use function KevinGH\Box\FileSystem\mkdir;
 use function KevinGH\Box\FileSystem\remove;
+use KevinGH\Box\PhpScoper\NullScoper;
+use KevinGH\Box\PhpScoper\WhitelistManipulator;
 use function openssl_pkey_export;
 use function openssl_pkey_get_details;
 use function openssl_pkey_get_private;
+use Phar;
+use RecursiveDirectoryIterator;
+use RuntimeException;
+use SplFileInfo;
 use function sprintf;
 
 /**
@@ -108,7 +110,7 @@ final class Box implements Countable
         $this->phar->startBuffering();
     }
 
-    public function endBuffering(bool $dumpAutoload): void
+    public function endBuffering(?Closure $dumpAutoload): void
     {
         Assertion::true($this->buffering, 'The buffering must be started before ending it');
 
@@ -128,9 +130,11 @@ final class Box implements Countable
                 dump_file($file, $contents);
             }
 
-            if ($dumpAutoload) {
-                // Dump autoload without dev dependencies
-                ComposerOrchestrator::dumpAutoload($this->scoper->getWhitelist(), $this->scoper->getPrefix());
+            if (null !== $dumpAutoload) {
+                $dumpAutoload(
+                    $this->scoper->getWhitelist(),
+                    $this->scoper->getPrefix()
+                );
             }
 
             chdir($cwd);
@@ -211,14 +215,11 @@ final class Box implements Countable
         return $extensionRequired;
     }
 
-    /**
-     * @param Compactor[] $compactors
-     */
-    public function registerCompactors(array $compactors): void
+    public function registerCompactors(Compactors $compactors): void
     {
-        Assertion::allIsInstanceOf($compactors, Compactor::class);
+        $compactorsArray = $compactors->toArray();
 
-        foreach ($compactors as $index => $compactor) {
+        foreach ($compactorsArray as $index => $compactor) {
             if ($compactor instanceof PhpScoper) {
                 $this->scoper = $compactor->getScoper();
 
@@ -226,13 +227,14 @@ final class Box implements Countable
             }
 
             if ($compactor instanceof Placeholder) {
-                unset($compactors[$index]);
+                // Removes the known Placeholder compactors in favour of the Box one
+                unset($compactorsArray[$index]);
             }
         }
 
-        array_unshift($compactors, $this->placeholderCompactor);
+        array_unshift($compactorsArray, $this->placeholderCompactor);
 
-        $this->compactors = new Compactors(...$compactors);
+        $this->compactors = new Compactors(...$compactorsArray);
     }
 
     /**
@@ -242,11 +244,11 @@ final class Box implements Countable
     {
         $message = 'Expected value "%s" to be a scalar or stringable object.';
 
-        foreach ($placeholders as $i => $placeholder) {
+        foreach ($placeholders as $index => $placeholder) {
             if (is_object($placeholder)) {
                 Assertion::methodExists('__toString', $placeholder, $message);
 
-                $placeholders[$i] = (string) $placeholder;
+                $placeholders[$index] = (string) $placeholder;
 
                 break;
             }
@@ -255,7 +257,8 @@ final class Box implements Countable
         }
 
         $this->placeholderCompactor = new Placeholder($placeholders);
-        $this->registerCompactors($this->compactors->toArray());
+
+        $this->registerCompactors($this->compactors);
     }
 
     public function registerFileMapping(MapFile $fileMapper): void
@@ -275,18 +278,14 @@ final class Box implements Countable
 
     /**
      * @param SplFileInfo[]|string[] $files
+     *
+     * @throws MultiReasonException
      */
     public function addFiles(array $files, bool $binary): void
     {
         Assertion::true($this->buffering, 'Cannot add files if the buffering has not started.');
 
-        $files = array_map(
-            static function ($file): string {
-                // Convert files to string as SplFileInfo is not serializable
-                return (string) $file;
-            },
-            $files
-        );
+        $files = array_map('strval', $files);
 
         if ($binary) {
             foreach ($files as $file) {
@@ -320,7 +319,7 @@ final class Box implements Countable
 
         $local = ($this->mapFile)($file);
 
-        $this->bufferedFiles[$local] = $binary ? $contents : $this->compactors->compactContents($local, $contents);
+        $this->bufferedFiles[$local] = $binary ? $contents : $this->compactors->compact($local, $contents);
 
         return $local;
     }
@@ -384,18 +383,23 @@ final class Box implements Countable
     {
         $mapFile = $this->mapFile;
         $compactors = $this->compactors;
-        $bootstrap = $GLOBALS['_BOX_BOOTSTRAP'] ?? static function (): void {};
         $cwd = getcwd();
 
-        $processFile = static function (string $file) use ($cwd, $mapFile, $compactors, $bootstrap): array {
+        $processFile = static function (string $file) use ($cwd, $mapFile, $compactors): array {
             chdir($cwd);
-            $bootstrap();
+
+            // Keep the fully qualified call here since this function may be executed without the right autoloading
+            // mechanism
+            \KevinGH\Box\register_aliases();
+            if (true === \KevinGH\Box\is_parallel_processing_enabled()) {
+                \KevinGH\Box\register_error_handler();
+            }
 
             $contents = file_contents($file);
 
             $local = $mapFile($file);
 
-            $processedContents = $compactors->compactContents($local, $contents);
+            $processedContents = $compactors->compact($local, $contents);
 
             return [$local, $processedContents, $compactors->getScoperWhitelist()];
         };

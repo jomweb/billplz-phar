@@ -7,6 +7,9 @@ use Amp\Parallel\Sync;
 use Amp\Promise;
 use function Amp\call;
 
+\define("AMP_CONTEXT", "process");
+\define("AMP_CONTEXT_ID", \getmypid());
+
 // Doesn't exist in phpdbg...
 if (\function_exists("cli_set_process_title")) {
     @\cli_set_process_title("amp-process");
@@ -39,7 +42,8 @@ if (\function_exists("cli_set_process_title")) {
     \array_shift($argv);
 
     if (!isset($argv[0])) {
-        throw new \Error("No socket path provided");
+        \trigger_error("No socket path provided", E_USER_ERROR);
+        exit(1);
     }
 
     // Remove socket path from process arguments.
@@ -80,13 +84,15 @@ if (\function_exists("cli_set_process_title")) {
             throw new \Error(\sprintf("No script found at '%s' (be sure to provide the full path to the script)", $argv[0]));
         }
 
-        // Protect current scope by requiring script within another function.
-        $callable = (function () use ($argc, $argv) { // Using $argc so it is available to the required script.
-            return require $argv[0];
-        })();
-
-        if (!\is_callable($callable)) {
-            throw new \Error(\sprintf("Script '%s' did not return a callable function", $argv[0]));
+        try {
+            // Protect current scope by requiring script within another function.
+            $callable = (function () use ($argc, $argv): callable { // Using $argc so it is available to the required script.
+                return require $argv[0];
+            })();
+        } catch (\TypeError $exception) {
+            throw new \Error(\sprintf("Script '%s' did not return a callable function", $argv[0]), 0, $exception);
+        } catch (\ParseError $exception) {
+            throw new \Error(\sprintf("Script '%s' contains a parse error: " . $exception->getMessage(), $argv[0]), 0, $exception);
         }
 
         $result = new Sync\ExitSuccess(Promise\wait(call($callable, $channel)));

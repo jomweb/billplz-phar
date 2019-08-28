@@ -4,7 +4,6 @@ namespace Amp\Parallel\Context;
 
 use Amp\Failure;
 use Amp\Loop;
-use Amp\Parallel\Sync\ChannelException;
 use Amp\Parallel\Sync\ChannelledSocket;
 use Amp\Parallel\Sync\ExitResult;
 use Amp\Parallel\Sync\SynchronizationError;
@@ -23,6 +22,9 @@ final class Thread implements Context
 {
     const EXIT_CHECK_FREQUENCY = 250;
 
+    /** @var int */
+    private static $nextId = 1;
+
     /** @var Internal\Thread An internal thread instance. */
     private $thread;
 
@@ -37,6 +39,9 @@ final class Thread implements Context
 
     /** @var mixed[] */
     private $args;
+
+    /** @var int|null */
+    private $id;
 
     /** @var int */
     private $oid = 0;
@@ -128,7 +133,7 @@ final class Thread implements Context
     /**
      * Spawns the thread and begins the thread's execution.
      *
-     * @return Promise<null> Resolved once the thread has started.
+     * @return Promise<int> Resolved once the thread has started.
      *
      * @throws \Amp\Parallel\Context\StatusError If the thread has already been started.
      * @throws \Amp\Parallel\Context\ContextException If starting the thread was unsuccessful.
@@ -157,7 +162,9 @@ final class Thread implements Context
 
         list($channel, $this->socket) = $sockets;
 
-        $thread = $this->thread = new Internal\Thread($this->socket, $this->function, $this->args);
+        $this->id = self::$nextId++;
+
+        $thread = $this->thread = new Internal\Thread($this->id, $this->socket, $this->function, $this->args);
 
         if (!$this->thread->start(\PTHREADS_INHERIT_INI)) {
             return new Failure(new ContextException('Failed to start the thread.'));
@@ -175,7 +182,7 @@ final class Thread implements Context
 
         Loop::disable($this->watcher);
 
-        return new Success;
+        return new Success($this->id);
     }
 
     /**
@@ -230,23 +237,17 @@ final class Thread implements Context
 
             try {
                 $response = yield $this->channel->receive();
-
-                if (!$response instanceof ExitResult) {
-                    throw new SynchronizationError('Did not receive an exit result from thread.');
-                }
-            } catch (ChannelException $exception) {
-                $this->kill();
-                throw new ContextException(
-                    "The context stopped responding, potentially due to a fatal error or calling exit",
-                    0,
-                    $exception
-                );
             } catch (\Throwable $exception) {
                 $this->kill();
-                throw $exception;
+                throw new ContextException("Failed to receive result from thread", 0, $exception);
             } finally {
                 Loop::disable($this->watcher);
                 $this->close();
+            }
+
+            if (!$response instanceof ExitResult) {
+                $this->kill();
+                throw new SynchronizationError('Did not receive an exit result from thread.');
             }
 
             return $response->getResult();
@@ -307,5 +308,21 @@ final class Thread implements Context
 
             return $result;
         });
+    }
+
+    /**
+     * Returns the ID of the thread. This ID will be unique to this process.
+     *
+     * @return int
+     *
+     * @throws \Amp\Process\StatusError
+     */
+    public function getId(): int
+    {
+        if ($this->id === null) {
+            throw new StatusError('The thread has not been started');
+        }
+
+        return $this->id;
     }
 }

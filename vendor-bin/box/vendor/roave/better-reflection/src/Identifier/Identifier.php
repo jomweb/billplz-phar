@@ -35,6 +35,7 @@ class Identifier
             || strpos($name, ReflectionClass::ANONYMOUS_CLASS_NAME_PREFIX) === 0
         ) {
             $this->name = $name;
+
             return;
         }
 
@@ -65,5 +66,10 @@ class Identifier
     public function isFunction() : bool
     {
         return $this->type->isFunction();
+    }
+
+    public function isConstant() : bool
+    {
+        return $this->type->isConstant();
     }
 }

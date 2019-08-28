@@ -14,21 +14,23 @@ declare(strict_types=1);
 
 namespace KevinGH\Box\Console\Command;
 
+use function getenv;
+use function implode;
 use InvalidArgumentException;
 use KevinGH\Box\Console\DisplayNormalizer;
 use KevinGH\Box\Test\CommandTestCase;
 use Phar;
+use function preg_replace;
+use function realpath;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Output\OutputInterface;
 use UnexpectedValueException;
-use function getenv;
-use function implode;
-use function preg_replace;
-use function realpath;
 
 /**
  * @covers \KevinGH\Box\Console\Command\Info
- * @runTestsInSeparateProcesses
+ *
+ * @runTestsInSeparateProcesses This is necessary as instantiating a PHAR in memory may load/autoload some stuff which
+ *                              can create undesirable side-effects.
  */
 class InfoTest extends CommandTestCase
 {
@@ -92,7 +94,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression: None
+Compression: None
 
 Signature: {$signature['hash_type']}
 Signature Hash: {$signature['hash']}
@@ -129,7 +131,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression: None
+Compression: None
 
 Signature: {$signature['hash_type']}
 Signature Hash: {$signature['hash']}
@@ -213,7 +215,9 @@ OUTPUT;
 
 API Version: No information found
 
-Archive Compression: GZ
+Compression: GZ
+
+Signature unreadable
 
 Metadata: None
 
@@ -243,7 +247,9 @@ OUTPUT;
 
 API Version: No information found
 
-Archive Compression: BZ2
+Compression: BZ2
+
+Signature unreadable
 
 Metadata: None
 
@@ -316,7 +322,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression:
+Compression:
   - BZ2 (33.33%)
   - None (66.67%)
 
@@ -363,7 +369,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression:
+Compression:
   - BZ2 (33.33%)
   - None (66.67%)
 
@@ -379,6 +385,60 @@ Contents: 3 files (6.75KB)
 a/bar.php [BZ2] - 60.00B
 b/beta/bar.php [NONE] - 0.00B
 foo.php [NONE] - 19.00B
+
+OUTPUT;
+
+        $this->assertSame($expected, DisplayNormalizer::removeTrailingSpaces($this->commandTester->getDisplay(true)));
+        $this->assertSame(0, $this->commandTester->getStatusCode());
+    }
+
+    public function test_it_provides_a_phar_info_with_the_tree_of_the_content_including_hidden_files(): void
+    {
+        $pharPath = self::FIXTURES.'/hidden-files.phar';
+        $phar = new Phar($pharPath);
+
+        $version = $phar->getVersion();
+        $signature = $phar->getSignature();
+
+        $this->commandTester->execute(
+            [
+                'command' => 'info',
+                'phar' => $pharPath,
+                '--list' => true,
+            ]
+        );
+
+        $expected = <<<OUTPUT
+
+API Version: $version
+
+Compression: None
+
+Signature: {$signature['hash_type']}
+Signature Hash: {$signature['hash']}
+
+Metadata: None
+
+Contents: 16 files (7.50KB)
+.hidden-dir/
+  .hidden-file1 [NONE] - 0.00B
+  .hidden-file1.php [NONE] - 33.00B
+  file1 [NONE] - 0.00B
+  file1.php [NONE] - 33.00B
+.hidden-foo [NONE] - 0.00B
+.hidden-foo.php [NONE] - 33.00B
+a/
+  .hidden-bar [NONE] - 0.00B
+  .hidden-bar.php [NONE] - 33.00B
+  .hidden-dir-2/
+    .hidden-file2 [NONE] - 0.00B
+    .hidden-file2.php [NONE] - 33.00B
+    file2 [NONE] - 0.00B
+    file2.php [NONE] - 33.00B
+  bar [NONE] - 0.00B
+  bar.php [NONE] - 33.00B
+foo [NONE] - 0.00B
+foo.php [NONE] - 33.00B
 
 OUTPUT;
 
@@ -408,7 +468,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression:
+Compression:
   - BZ2 (33.33%)
   - None (66.67%)
 
@@ -444,7 +504,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression:
+Compression:
   - BZ2 (33.33%)
   - None (66.67%)
 
@@ -482,7 +542,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression:
+Compression:
   - BZ2 (33.33%)
   - None (66.67%)
 
@@ -531,7 +591,7 @@ OUTPUT;
 
 API Version: $version
 
-Archive Compression:
+Compression:
   - BZ2 (33.33%)
   - None (66.67%)
 

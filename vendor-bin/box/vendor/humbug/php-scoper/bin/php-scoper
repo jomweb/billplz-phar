@@ -13,6 +13,7 @@
 
 namespace Humbug\PhpScoper;
 
+use ErrorException;
 use Isolated\Symfony\Component\Finder\Finder as IsolatedFinder;
 use RuntimeException;
 use Symfony\Component\Finder\Finder;
@@ -23,7 +24,15 @@ if (PHP_SAPI !== 'cli' && PHP_SAPI !== 'phpdbg') {
     exit(1);
 }
 
-$findAutoload = function () {
+set_error_handler(
+    static function (int $code, string $message, string $file = '', int $line = -1): void {
+        if (error_reporting() & $code) {
+            throw new ErrorException($message, 0, $code, $file, $line);
+        }
+    }
+);
+
+$findAutoload = static function () {
     if (file_exists($autoload = __DIR__.'/../../../autoload.php')) {
         // Is installed via composer
         return $autoload;
@@ -46,5 +55,4 @@ if (false === class_exists(IsolatedFinder::class)) {
     class_alias(Finder::class, IsolatedFinder::class);
 }
 
-$app = create_application();
-$app->run();
+create_application()->run();

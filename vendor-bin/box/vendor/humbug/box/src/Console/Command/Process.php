@@ -14,35 +14,35 @@ declare(strict_types=1);
 
 namespace KevinGH\Box\Console\Command;
 
-use KevinGH\Box\Compactor;
-use KevinGH\Box\Compactor\Placeholder;
-use KevinGH\Box\Compactors;
-use KevinGH\Box\Configuration;
-use KevinGH\Box\PhpSettingsHandler;
-use stdClass;
-use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Logger\ConsoleLogger;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use const KevinGH\Box\BOX_ALLOW_XDEBUG;
 use function array_map;
 use function array_shift;
 use function array_unshift;
 use function explode;
 use function get_class;
 use function getcwd;
+use Humbug\PhpScoper\Whitelist;
 use function implode;
+use const KevinGH\Box\BOX_ALLOW_XDEBUG;
+use function KevinGH\Box\check_php_settings;
+use KevinGH\Box\Compactor\Compactor;
+use KevinGH\Box\Compactor\Compactors;
+use KevinGH\Box\Compactor\PhpScoper;
+use KevinGH\Box\Compactor\Placeholder;
+use KevinGH\Box\Configuration\Configuration;
+use KevinGH\Box\Console\IO\IO;
 use function KevinGH\Box\FileSystem\file_contents;
 use function KevinGH\Box\FileSystem\make_path_absolute;
 use function KevinGH\Box\FileSystem\make_path_relative;
 use function putenv;
 use function sprintf;
-use function strlen;
-use function substr;
+use stdClass;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\VarDumper\Cloner\VarCloner;
+use Symfony\Component\VarDumper\Dumper\CliDumper;
 
-final class Process extends ConfigurableCommand
+final class Process extends ConfigurableBaseCommand
 {
     use ChangeableWorkingDirectory;
 
@@ -89,15 +89,15 @@ final class Process extends ConfigurableCommand
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function executeCommand(IO $io): int
     {
-        $io = new SymfonyStyle($input, $output);
+        $input = $io->getInput();
 
         if ($input->getOption(self::NO_RESTART_OPTION)) {
             putenv(BOX_ALLOW_XDEBUG.'=1');
         }
 
-        (new PhpSettingsHandler(new ConsoleLogger($output)))->check();
+        check_php_settings($io);
 
         $this->changeWorkingDirectory($input);
 
@@ -105,9 +105,10 @@ final class Process extends ConfigurableCommand
 
         $config = $input->getOption(self::NO_CONFIG_OPTION)
             ? Configuration::create(null, new stdClass())
-            : $this->getConfig($input, $output, true)
+            : $this->getConfig($io, true)
         ;
 
+        /** @var string $filePath */
         $filePath = $input->getArgument(self::FILE_ARGUMENT);
 
         $path = make_path_relative($filePath, $config->getBasePath());
@@ -129,14 +130,16 @@ final class Process extends ConfigurableCommand
             '',
         ]);
 
-        $this->logPlaceholders($io, $config);
-        $this->logCompactors($io, $compactors);
+        $this->logPlaceholders($config, $io);
+        $this->logCompactors($compactors, $io);
 
-        $fileProcessedContents = $compactors->compactContents($path, $fileContents);
+        $fileProcessedContents = $compactors->compact($path, $fileContents);
 
         if ($io->isQuiet()) {
             $io->writeln($fileProcessedContents, OutputInterface::VERBOSITY_QUIET);
         } else {
+            $whitelist = $this->retrieveWhitelist($compactors);
+
             $io->writeln([
                 'Processed contents:',
                 '',
@@ -144,12 +147,25 @@ final class Process extends ConfigurableCommand
                 $fileProcessedContents,
                 '<comment>"""</comment>',
             ]);
+
+            if (null !== $whitelist) {
+                $io->writeln([
+                    '',
+                    'Whitelist:',
+                    '',
+                    '<comment>"""</comment>',
+                    $this->exportWhitelist($whitelist, $io),
+                    '<comment>"""</comment>',
+                ]);
+            }
         }
+
+        return 0;
     }
 
     private function retrieveCompactors(Configuration $config): Compactors
     {
-        $compactors = $config->getCompactors();
+        $compactors = $config->getCompactors()->toArray();
 
         array_unshift(
             $compactors,
@@ -159,7 +175,7 @@ final class Process extends ConfigurableCommand
         return new Compactors(...$compactors);
     }
 
-    private function logPlaceholders(SymfonyStyle $io, Configuration $config): void
+    private function logPlaceholders(Configuration $config, IO $io): void
     {
         if ([] === $config->getReplacements()) {
             $io->writeln([
@@ -185,7 +201,7 @@ final class Process extends ConfigurableCommand
         $io->newLine();
     }
 
-    private function logCompactors(SymfonyStyle $io, Compactors $compactors): void
+    private function logCompactors(Compactors $compactors, IO $io): void
     {
         $nestedCompactors = $compactors->toArray();
 
@@ -209,7 +225,7 @@ final class Process extends ConfigurableCommand
         $logCompactors = static function (Compactor $compactor) use ($io): void {
             $compactorClassParts = explode('\\', get_class($compactor));
 
-            if ('_HumbugBox' === substr($compactorClassParts[0], 0, strlen('_HumbugBox'))) {
+            if (0 === strpos($compactorClassParts[0], '_HumbugBox')) {
                 // Keep the non prefixed class name for the user
                 array_shift($compactorClassParts);
             }
@@ -223,6 +239,35 @@ final class Process extends ConfigurableCommand
         };
 
         array_map($logCompactors, $nestedCompactors);
+
         $io->newLine();
+    }
+
+    private function retrieveWhitelist(Compactors $compactors): ?Whitelist
+    {
+        foreach ($compactors->toArray() as $compactor) {
+            if ($compactor instanceof PhpScoper) {
+                return $compactor->getScoper()->getWhitelist();
+            }
+        }
+
+        return null;
+    }
+
+    private function exportWhitelist(Whitelist $whitelist, IO $io): string
+    {
+        $cloner = new VarCloner();
+        $cloner->setMaxItems(-1);
+        $cloner->setMaxString(-1);
+
+        $cliDumper = new CliDumper();
+        if ($io->isDecorated()) {
+            $cliDumper->setColors(true);
+        }
+
+        return (string) $cliDumper->dump(
+            $cloner->cloneVar($whitelist),
+            true
+        );
     }
 }

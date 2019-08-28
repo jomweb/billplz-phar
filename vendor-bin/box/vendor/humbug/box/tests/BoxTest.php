@@ -14,47 +14,54 @@ declare(strict_types=1);
 
 namespace KevinGH\Box;
 
+use function array_filter;
+use function array_keys;
+use function current;
+use const DIRECTORY_SEPARATOR;
+use function dirname;
+use Error;
 use Exception;
+use function exec;
+use function extension_loaded;
+use function file_get_contents;
 use Generator;
+use function implode;
+use function in_array;
 use InvalidArgumentException;
+use function iterator_to_array;
+use KevinGH\Box\Compactor\Compactor;
+use KevinGH\Box\Compactor\Compactors;
 use KevinGH\Box\Compactor\FakeCompactor;
 use KevinGH\Box\Console\DisplayNormalizer;
+use function KevinGH\Box\FileSystem\canonicalize;
+use function KevinGH\Box\FileSystem\chmod;
+use function KevinGH\Box\FileSystem\dump_file;
+use function KevinGH\Box\FileSystem\make_tmp_dir;
+use function KevinGH\Box\FileSystem\mkdir;
 use KevinGH\Box\Test\FileSystemTestCase;
 use KevinGH\Box\Test\RequiresPharReadonlyOff;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamWrapper;
 use Phar;
 use PharFileInfo;
+use const PHP_EOL;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
+use function realpath;
 use RuntimeException;
 use SplFileInfo;
-use Symfony\Component\Finder\Finder;
-use const DIRECTORY_SEPARATOR;
-use const PHP_EOL;
-use const STDOUT;
-use function array_filter;
-use function array_keys;
-use function current;
-use function dirname;
-use function exec;
-use function extension_loaded;
-use function file_get_contents;
-use function implode;
-use function in_array;
-use function iterator_to_array;
-use function KevinGH\Box\FileSystem\canonicalize;
-use function KevinGH\Box\FileSystem\chmod;
-use function KevinGH\Box\FileSystem\dump_file;
-use function KevinGH\Box\FileSystem\make_tmp_dir;
-use function KevinGH\Box\FileSystem\mkdir;
-use function realpath;
 use function sprintf;
+use const STDOUT;
 use function str_replace;
+use Symfony\Component\Finder\Finder;
+use Throwable;
 use function trim;
 
 /**
  * @covers \KevinGH\Box\Box
+ *
+ * @runTestsInSeparateProcesses There is side-effects caused by generating PHARs as a result it is necessary to scope it
+ *                              in separate processes.
  */
 class BoxTest extends FileSystemTestCase
 {
@@ -62,15 +69,6 @@ class BoxTest extends FileSystemTestCase
 
     /** @var Box */
     private $box;
-
-    /** @var Phar */
-    private $phar;
-
-    /** @var Compactor|ObjectProphecy */
-    private $compactorProphecy;
-
-    /** @var Compactor */
-    private $compactor;
 
     /**
      * {@inheritdoc}
@@ -82,10 +80,6 @@ class BoxTest extends FileSystemTestCase
         parent::setUp();
 
         $this->box = Box::create('test.phar');
-        $this->phar = $this->box->getPhar();
-
-        $this->compactorProphecy = $this->prophesize(Compactor::class);
-        $this->compactor = $this->compactorProphecy->reveal();
     }
 
     /**
@@ -121,7 +115,7 @@ class BoxTest extends FileSystemTestCase
     public function test_it_cannot_end_the_buffering_if_it_is_already_ended(): void
     {
         try {
-            $this->box->endBuffering(false);
+            $this->box->endBuffering(noop());
 
             $this->fail('Expected exception to be thrown.');
         } catch (InvalidArgumentException $exception) {
@@ -132,10 +126,10 @@ class BoxTest extends FileSystemTestCase
         }
 
         $this->box->startBuffering();
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         try {
-            $this->box->endBuffering(false);
+            $this->box->endBuffering(noop());
 
             $this->fail('Expected exception to be thrown.');
         } catch (InvalidArgumentException $exception) {
@@ -155,7 +149,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -174,7 +168,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file0, $file0Contents);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $file0Contents;
         $expectedPharPath = 'phar://test.phar/'.$file0;
@@ -190,7 +184,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file1, $file1Contents);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $file1Contents;
         $expectedPharPath = 'phar://test.phar/'.$file1;
@@ -228,7 +222,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file, $contents);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -249,7 +243,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file, $contents);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -268,7 +262,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file, $contents, true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -289,7 +283,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file, $contents, true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -311,7 +305,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$relativePath;
@@ -342,7 +336,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$localPath;
@@ -361,11 +355,11 @@ class BoxTest extends FileSystemTestCase
 
         dump_file($file, $contents);
 
-        $this->box->registerCompactors([new FakeCompactor()]);
+        $this->box->registerCompactors(new Compactors(new FakeCompactor()));
 
         $this->box->startBuffering();
         $this->box->addFile($file, null, true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -396,7 +390,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFile($file, null, true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $contents;
         $expectedPharPath = 'phar://test.phar/'.$localPath;
@@ -418,28 +412,32 @@ class BoxTest extends FileSystemTestCase
 
         dump_file($file, $contents);
 
+        /** @var Compactor&ObjectProphecy $firstCompactorProphecy */
         $firstCompactorProphecy = $this->prophesize(Compactor::class);
         $firstCompactorProphecy
             ->compact($file, 'original contents foo_value')
             ->willReturn($firstCompactorOutput = 'first compactor contents')
         ;
 
+        /** @var Compactor&ObjectProphecy $secondCompactorProphecy */
         $secondCompactorProphecy = $this->prophesize(Compactor::class);
         $secondCompactorProphecy
             ->compact($file, $firstCompactorOutput)
             ->willReturn($secondCompactorOutput = 'second compactor contents')
         ;
 
-        $this->box->registerCompactors([
-            $firstCompactorProphecy->reveal(),
-            $secondCompactorProphecy->reveal(),
-        ]);
+        $this->box->registerCompactors(
+            new Compactors(
+                $firstCompactorProphecy->reveal(),
+                $secondCompactorProphecy->reveal()
+            )
+        );
 
         $this->box->registerPlaceholders($placeholderMapping);
 
         $this->box->startBuffering();
         $this->box->addFile($file);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $secondCompactorOutput;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -478,7 +476,7 @@ class BoxTest extends FileSystemTestCase
 
             $this->box->startBuffering();
             $local = $this->box->addFile($file);
-            $this->box->endBuffering(false);
+            $this->box->endBuffering(noop());
 
             $this->assertSame($expectedLocal, $local);
 
@@ -525,7 +523,7 @@ class BoxTest extends FileSystemTestCase
         try {
             $this->box->startBuffering();
             $this->box->addFile($file);
-            $this->box->endBuffering(false);
+            $this->box->endBuffering(noop());
 
             $this->fail('Expected exception to be thrown.');
         } catch (InvalidArgumentException $exception) {
@@ -560,16 +558,18 @@ class BoxTest extends FileSystemTestCase
             ->willReturn($secondCompactorOutput = 'second compactor contents')
         ;
 
-        $this->box->registerCompactors([
-            $firstCompactorProphecy->reveal(),
-            $secondCompactorProphecy->reveal(),
-        ]);
+        $this->box->registerCompactors(
+            new Compactors(
+                $firstCompactorProphecy->reveal(),
+                $secondCompactorProphecy->reveal()
+            )
+        );
 
         $this->box->registerPlaceholders($placeholderMapping);
 
         $this->box->startBuffering();
         $this->box->addFile($file, $contents);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expectedContents = $secondCompactorOutput;
         $expectedPharPath = 'phar://test.phar/'.$file;
@@ -597,7 +597,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFiles(['foo', 'bar'], false);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $contents) {
             $expectedContents = $contents;
@@ -647,7 +647,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFiles([$f1, $f2], false);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $contents) {
             $expectedContents = $contents;
@@ -689,7 +689,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFiles(['foo', 'bar'], false);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $item) {
             $expectedContents = $item['contents'];
@@ -715,9 +715,13 @@ class BoxTest extends FileSystemTestCase
             dump_file($file, $contents);
         }
 
+        $autoloadDumped = false;
+
         $this->box->startBuffering();
         $this->box->addFiles(array_keys($files), false);
-        $this->box->endBuffering(true);
+        $this->box->endBuffering(static function () use (&$autoloadDumped): void {
+            $autoloadDumped = true;
+        });
 
         foreach ($files as $file => $contents) {
             $expectedContents = $contents;
@@ -730,24 +734,40 @@ class BoxTest extends FileSystemTestCase
             $this->assertSame($expectedContents, $actualContents);
         }
 
-        $this->assertFileExists('phar://test.phar/vendor/autoload.php');
+        $this->assertTrue($autoloadDumped);
     }
 
-    public function test_it_cannot_dump_the_autoloader_when_adding_files_to_the_phar_if_the_composer_json_file_could_not_be_found(): void
+    public function test_it_artefacts_created_when_dumping_the_autoloader_are_added_to_the_phar(): void
     {
-        try {
-            $this->box->startBuffering();
-            $this->box->addFiles([], false);
-            $this->box->endBuffering(true);
+        $files = [
+            'foo' => 'foo contents',
+            'bar' => 'bar contents',
+            'composer.json' => '{}',
+        ];
 
-            $this->fail('Expected exception to be thrown.');
-        } catch (RuntimeException $exception) {
-            $this->assertStringStartsWith(
-                'Could not dump the autoload: Composer could not find a composer.json file in',
-                $exception->getMessage()
-            );
-            $this->assertSame(0, $exception->getCode());
-            $this->assertNotNull($exception->getPrevious());
+        foreach ($files as $file => $contents) {
+            dump_file($file, $contents);
+        }
+
+        $this->box->startBuffering();
+        $this->box->addFiles(array_keys($files), false);
+        $this->box->endBuffering(static function () use (&$files): void {
+            dump_file('zip');
+            $files['zip'] = '';
+
+            dump_file('zap');
+            $files['zap'] = '';
+        });
+
+        foreach ($files as $file => $contents) {
+            $expectedContents = $contents;
+            $expectedPharPath = 'phar://test.phar/'.$file;
+
+            $this->assertFileExists($expectedPharPath);
+
+            $actualContents = file_get_contents($expectedPharPath);
+
+            $this->assertSame($expectedContents, $actualContents);
         }
     }
 
@@ -765,7 +785,7 @@ class BoxTest extends FileSystemTestCase
 
         $this->box->startBuffering();
         $this->box->addFiles(array_keys($files), true);
-        $this->box->endBuffering(true);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $contents) {
             $this->assertFileExists('phar://test.phar/'.$file);
@@ -799,7 +819,7 @@ JSON
 
         $this->box->startBuffering();
         $this->box->addFiles(array_keys($files), true);
-        $this->box->endBuffering(true);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $contents) {
             $this->assertFileExists('phar://test.phar/'.$file);
@@ -835,7 +855,7 @@ JSON
 
         $this->box->startBuffering();
         $this->box->addFiles(array_keys($files), true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $contents) {
             $this->assertFileExists('phar://test.phar/lib/'.$file);
@@ -864,7 +884,7 @@ JSON
         }
     }
 
-    public function test_it_fails_gracefully_when_the_autoloader_failed_to_be_dumped(): void
+    public function test_it_bails_out_when_the_autoloader_failed_to_be_dumped(): void
     {
         $this->box->startBuffering();
         $this->box->addFile(
@@ -878,22 +898,16 @@ JSON
 JSON
         );
 
+        $error = null;
+
         try {
-            $this->box->endBuffering(true);
+            $this->box->endBuffering(static function () use (&$error): void {
+                throw $error = new Error('Autoload dump error');
+            });
 
             $this->fail('Expected exception to be thrown.');
-        } catch (RuntimeException $exception) {
-            $this->assertSame(
-                'Could not dump the autoload: Could not scan for classes inside "unknown" which does not appear to be a file nor a folder',
-                $exception->getMessage()
-            );
-            $this->assertSame(0, $exception->getCode());
-            $this->assertNotNull($exception->getPrevious());
-
-            $this->assertSame(
-                'Could not scan for classes inside "unknown" which does not appear to be a file nor a folder',
-                $exception->getPrevious()->getMessage()
-            );
+        } catch (Throwable $throwable) {
+            $this->assertSame($error, $throwable);
         }
     }
 
@@ -910,7 +924,7 @@ JSON
 
         $this->box->startBuffering();
         $this->box->addFiles(['foo', 'bar'], true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $contents) {
             $expectedContents = $contents;
@@ -952,7 +966,7 @@ JSON
 
         $this->box->startBuffering();
         $this->box->addFiles(['foo', 'bar'], true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $file => $item) {
             $expectedContents = $item['contents'];
@@ -989,7 +1003,7 @@ JSON
 
         $this->box->startBuffering();
         $this->box->addFiles(array_keys($files), false);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $expected = [
             'foo' => 'foo_value',
@@ -1032,7 +1046,7 @@ JSON
 
         $this->box->startBuffering();
         $this->box->addFiles(array_keys($files), true);
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         foreach ($files as $expectedLocal) {
             $this->assertFileExists(
@@ -1391,7 +1405,7 @@ __HALT_COMPILER(); ?>
 PHP
         );
 
-        $this->box->endBuffering(false);
+        $this->box->endBuffering(noop());
 
         $this->assertCount(2, $this->box);
 
@@ -1466,7 +1480,7 @@ PHP
         $this->box->sign($key, $password);
 
         $this->assertNotSame([], $phar->getSignature(), 'Expected the PHAR to be signed.');
-        $this->assertInternalType('string', $phar->getSignature()['hash'], 'Expected the PHAR signature hash to be a string.');
+        $this->assertIsString($phar->getSignature()['hash'], 'Expected the PHAR signature hash to be a string.');
         $this->assertNotEmpty($phar->getSignature()['hash'], 'Expected the PHAR signature hash to not be empty.');
 
         $this->assertSame('OpenSSL', $phar->getSignature()['hash_type']);
@@ -1535,7 +1549,7 @@ PHP
         $this->box->signUsingFile($file, $password);
 
         $this->assertNotSame([], $phar->getSignature(), 'Expected the PHAR to be signed.');
-        $this->assertInternalType('string', $phar->getSignature()['hash'], 'Expected the PHAR signature hash to be a string.');
+        $this->assertIsString($phar->getSignature()['hash'], 'Expected the PHAR signature hash to be a string.');
         $this->assertNotEmpty($phar->getSignature()['hash'], 'Expected the PHAR signature hash to not be empty.');
 
         $this->assertSame('OpenSSL', $phar->getSignature()['hash_type']);

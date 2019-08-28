@@ -27,11 +27,19 @@ class PlaceholderTest extends TestCase
      */
     public function test_it_replaces_the_placeholders(array $placeholders, string $contents, string $expected): void
     {
-        $compactor = new Placeholder($placeholders);
-
-        $actual = $compactor->compact('random file', $contents);
+        $actual = (new Placeholder($placeholders))->compact('random file', $contents);
 
         $this->assertSame($expected, $actual);
+    }
+
+    public function test_it_is_serializable(): void
+    {
+        $compactor = new Placeholder([]);
+
+        $this->assertEquals(
+            $compactor,
+            unserialize(serialize($compactor))
+        );
     }
 
     public function provideFilesContents(): Generator

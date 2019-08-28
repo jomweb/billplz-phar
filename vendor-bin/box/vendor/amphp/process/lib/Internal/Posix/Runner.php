@@ -24,6 +24,9 @@ final class Runner implements ProcessRunner
         ["pipe", "w"], // exit code pipe
     ];
 
+    /** @var string|null */
+    private static $fdPath;
+
     public static function onProcessEndExtraDataPipeReadable($watcher, $stream, Handle $handle)
     {
         Loop::cancel($watcher);
@@ -76,13 +79,13 @@ final class Runner implements ProcessRunner
     public function start(string $command, string $cwd = null, array $env = [], array $options = []): ProcessHandle
     {
         $command = \sprintf(
-            '{ (%s) <&3 3<&- 3>/dev/null & } 3<&0;' .
+            '{ (%s) <&3 3<&- 3>/dev/null & } 3<&0; trap "" INT TERM QUIT HUP;' .
             'pid=$!; echo $pid >&3; wait $pid; RC=$?; echo $RC >&3; exit $RC',
             $command
         );
 
         $handle = new Handle;
-        $handle->proc = @\proc_open($command, self::FD_SPEC, $pipes, $cwd ?: null, $env ?: null, $options);
+        $handle->proc = @\proc_open($command, $this->generateFds(), $pipes, $cwd ?: null, $env ?: null, $options);
 
         if (!\is_resource($handle->proc)) {
             $message = "Could not start process";
@@ -125,6 +128,30 @@ final class Runner implements ProcessRunner
         Loop::disable($handle->extraDataPipeWatcher);
 
         return $handle;
+    }
+
+    private function generateFds(): array
+    {
+        if (self::$fdPath === null) {
+            self::$fdPath = \file_exists("/dev/fd") ? "/dev/fd" : "/proc/self/fd";
+        }
+
+        $fdList = @\scandir(self::$fdPath, \SCANDIR_SORT_NONE);
+
+        if ($fdList === false) {
+            throw new ProcessException("Unable to list open file descriptors");
+        }
+
+        $fdList = \array_filter($fdList, function (string $path): bool {
+            return $path !== "." && $path !== "..";
+        });
+
+        $fds = [];
+        foreach ($fdList as $id) {
+            $fds[(int) $id] = ["file", "/dev/null", "r"];
+        }
+
+        return self::FD_SPEC + $fds;
     }
 
     /** @inheritdoc */
@@ -177,10 +204,13 @@ final class Runner implements ProcessRunner
     /** @inheritdoc */
     public function signal(ProcessHandle $handle, int $signo)
     {
-        /** @var Handle $handle */
-        if (!\proc_terminate($handle->proc, $signo)) {
-            throw new ProcessException("Sending signal to process failed");
-        }
+        $handle->pidDeferred->promise()->onResolve(function ($error, $pid) use ($signo) {
+            if ($error) {
+                return;
+            }
+
+            @\posix_kill($pid, $signo);
+        });
     }
 
     /** @inheritdoc */

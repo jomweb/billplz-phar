@@ -15,8 +15,8 @@ declare(strict_types=1);
 namespace KevinGH\Box\Console;
 
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Tester\ApplicationTester;
 use function preg_replace;
+use Symfony\Component\Console\Tester\ApplicationTester;
 
 /**
  * @covers \KevinGH\Box\Console\Application
@@ -113,6 +113,7 @@ Available commands:
   compile   🔨  Compiles an application into a PHAR
   diff      🕵  Displays the differences between all of the files in two PHARs
   docker    🐳  Generates a Dockerfile for the given PHAR
+  extract   🚚  Extracts a given PHAR into a directory
   help      Displays help for a command
   info      🔍  Displays information about the PHAR extension or file
   list      Lists commands

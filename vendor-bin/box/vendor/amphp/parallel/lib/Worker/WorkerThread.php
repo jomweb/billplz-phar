@@ -14,10 +14,22 @@ final class WorkerThread extends TaskWorker
     /**
      * @param string $envClassName Name of class implementing \Amp\Parallel\Worker\Environment to instigate.
      *     Defaults to \Amp\Parallel\Worker\BasicEnvironment.
+     * @param string|null $bootstrapPath Path to custom autoloader.
      */
-    public function __construct(string $envClassName = BasicEnvironment::class)
+    public function __construct(string $envClassName = BasicEnvironment::class, string $bootstrapPath = null)
     {
-        parent::__construct(new Thread(function (Channel $channel, string $className): Promise {
+        parent::__construct(new Thread(static function (Channel $channel, string $className, string $bootstrapPath = null): Promise {
+            if ($bootstrapPath !== null) {
+                if (!\is_file($bootstrapPath)) {
+                    throw new \Error(\sprintf("No file found at bootstrap file path given '%s'", $bootstrapPath));
+                }
+
+                // Include file within unbound closure to protect scope.
+                (static function () use ($bootstrapPath): void {
+                    require $bootstrapPath;
+                })->bindTo(null, null)();
+            }
+
             if (!\class_exists($className)) {
                 throw new \Error(\sprintf("Invalid environment class name '%s'", $className));
             }
@@ -29,11 +41,11 @@ final class WorkerThread extends TaskWorker
             $environment = new $className;
 
             if (!\defined("AMP_WORKER")) {
-                \define("AMP_WORKER", "amp-worker");
+                \define("AMP_WORKER", \AMP_CONTEXT);
             }
 
             $runner = new TaskRunner($channel, $environment);
             return $runner->run();
-        }, $envClassName));
+        }, $envClassName, $bootstrapPath));
     }
 }

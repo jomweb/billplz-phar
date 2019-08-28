@@ -16,17 +16,16 @@ use Isolated\Symfony\Component\Finder\Finder;
 
 return [
     'patchers' => [
-        // TODO: to check if still necessary
-        function (string $filePath, string $prefix, string $contents): string {
+        static function (string $filePath, string $prefix, string $contents): string {
             $finderClass = sprintf('\%s\%s', $prefix, Finder::class);
 
             return str_replace($finderClass, '\\'.Finder::class, $contents);
         },
         // Box compactors: not required to work but avoid any confusion for the users
-        function (string $filePath, string $prefix, string $contents): string {
+        static function (string $filePath, string $prefix, string $contents): string {
             $files = [
                 'src/functions.php',
-                'src/Configuration.php',
+                'src/Configuration/Configuration.php',
             ];
 
             if (false === in_array($filePath, $files, true)) {
@@ -42,7 +41,7 @@ return [
                 $contents
             );
 
-            return preg_replace(
+            $contents = preg_replace(
                 sprintf(
                     '/\\\\'.$prefix.'\\\\KevinGH\\\\Box\\\\Compactor\\\\/',
                     $prefix
@@ -50,23 +49,18 @@ return [
                 '\\KevinGH\\\Box\\Compactor\\',
                 $contents
             );
-        },
-        function (string $filePath, string $prefix, string $contents): string {
-            if ('vendor/composer/composer/src/Composer/Autoload/AutoloadGenerator.php' !== $filePath) {
-                return $contents;
-            }
 
             return preg_replace(
+                '/\\\\KevinGH\\\\Box\\\\Compactor\\\\Compactors/',
                 sprintf(
-                    '/\$loader = new \\\\%s\\\\Composer\\\\Autoload\\\\ClassLoader\(\)/',
+                    '\\%s\\KevinGH\\\Box\\Compactor\\Compactors',
                     $prefix
                 ),
-                '$loader = new \Composer\Autoload\ClassLoader();',
                 $contents
             );
         },
         // Paragonie custom autoloader which relies on some regexes
-        function (string $filePath, string $prefix, string $contents): string {
+        static function (string $filePath, string $prefix, string $contents): string {
             if ('vendor/paragonie/sodium_compat/autoload.php' !== $filePath) {
                 return $contents;
             }
@@ -89,7 +83,7 @@ return [
             );
         },
         // Paragonie dynamic constants declarations
-        function (string $filePath, string $prefix, string $contents): string {
+        static function (string $filePath, string $prefix, string $contents): string {
             if ('vendor/paragonie/sodium_compat/lib/php72compat.php' !== $filePath) {
                 return $contents;
             }
@@ -104,7 +98,7 @@ return [
             );
         },
         // Hoa patches
-        function (string $filePath, string $prefix, string $contents): string {
+        static function (string $filePath, string $prefix, string $contents): string {
             if ('vendor/hoa/stream/Stream.php' !== $filePath) {
                 return $contents;
             }
@@ -112,13 +106,14 @@ return [
             return preg_replace(
                 '/Hoa\\\\Consistency::registerShutdownFunction\(xcallable\(\'(.*)\'\)\)/',
                 sprintf(
-                    'Hoa\\Consistency::registerShutdownFunction(xcallable(\'%s$1\'))',
+                    'Hoa\\Consistency::registerShutdownFunction(%sxcallable(\'%s$1\'))',
+                    '\\\\'.$prefix.'\\\\',
                     $prefix.'\\\\\\\\'
                 ),
                 $contents
             );
         },
-        function (string $filePath, string $prefix, string $contents): string {
+        static function (string $filePath, string $prefix, string $contents): string {
             if ('vendor/hoa/consistency/Autoloader.php' !== $filePath) {
                 return $contents;
             }
@@ -144,13 +139,23 @@ return [
 
             return $contents;
         },
-    ],
-    'files-whitelist' => [
-        __DIR__.'/vendor/composer/composer/src/Composer/Autoload/ClassLoader.php',
+        // Symfony polyfills patches
+        static function (string $filePath, string $prefix, string $contents): string {
+            if ('vendor/symfony/polyfill-php72/bootstrap.php' !== $filePath) {
+                return $contents;
+            }
+
+            return preg_replace(
+                '/namespace .+;/',
+                '',
+                $contents
+            );
+        },
     ],
     'whitelist' => [
         \Composer\Autoload\ClassLoader::class,
 
+        \KevinGH\Box\Compactor\Compactor::class,
         \Herrera\Box\Compactor\Json::class,
         \KevinGH\Box\Compactor\Json::class,
         \Herrera\Box\Compactor\Php::class,
@@ -186,7 +191,6 @@ return [
         '_concrete',
         '_overridable',
         'WITH_COMPOSER',
-        'xcallable',
     ],
     'whitelist-global-constants' => false,
     'whitelist-global-classes' => false,

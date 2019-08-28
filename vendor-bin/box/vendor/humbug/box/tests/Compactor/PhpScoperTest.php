@@ -12,15 +12,16 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace KevinGH\Box;
+namespace KevinGH\Box\Compactor;
 
 use Error;
-use KevinGH\Box\Compactor\PhpScoper;
 use KevinGH\Box\PhpScoper\FakeScoper;
 use KevinGH\Box\PhpScoper\Scoper;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
+use function serialize;
+use function unserialize;
 
 /**
  * @covers \KevinGH\Box\Compactor\PhpScoper
@@ -37,15 +38,13 @@ class PhpScoperTest extends TestCase
 }
 JSON;
 
-        /** @var ObjectProphecy|Scoper $scoper */
+        /** @var ObjectProphecy&Scoper $scoper */
         $scoperProphecy = $this->prophesize(Scoper::class);
         $scoperProphecy->scope($file, $contents)->willReturn($expected = 'Scoped contents');
         /** @var Scoper $scoper */
         $scoper = $scoperProphecy->reveal();
 
-        $compactor = new PhpScoper($scoper);
-
-        $actual = $compactor->compact($file, $contents);
+        $actual = (new PhpScoper($scoper))->compact($file, $contents);
 
         $this->assertSame($expected, $actual);
 
@@ -62,15 +61,13 @@ JSON;
 }
 JSON;
 
-        /** @var ObjectProphecy|Scoper $scoper */
+        /** @var ObjectProphecy&Scoper $scoper */
         $scoperProphecy = $this->prophesize(Scoper::class);
         $scoperProphecy->scope($file, $contents)->willThrow(new Error());
         /** @var Scoper $scoper */
         $scoper = $scoperProphecy->reveal();
 
-        $compactor = new PhpScoper($scoper);
-
-        $actual = $compactor->compact($file, $contents);
+        $actual = (new PhpScoper($scoper))->compact($file, $contents);
 
         $this->assertSame($contents, $actual);
     }
@@ -82,5 +79,15 @@ JSON;
         $compactor = new PhpScoper($scoper);
 
         $this->assertSame($scoper, $compactor->getScoper());
+    }
+
+    public function test_it_is_serializable(): void
+    {
+        $compactor = new PhpScoper(new FakeScoper());
+
+        $this->assertEquals(
+            $compactor,
+            unserialize(serialize($compactor))
+        );
     }
 }

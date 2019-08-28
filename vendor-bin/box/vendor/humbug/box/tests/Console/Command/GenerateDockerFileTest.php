@@ -17,11 +17,14 @@ namespace KevinGH\Box\Console\Command;
 use KevinGH\Box\Console\DisplayNormalizer;
 use KevinGH\Box\Test\CommandTestCase;
 use KevinGH\Box\Test\RequiresPharReadonlyOff;
-use Symfony\Component\Console\Command\Command;
 use function realpath;
+use Symfony\Component\Console\Command\Command;
 
 /**
  * @covers \KevinGH\Box\Console\Command\GenerateDockerFile
+ *
+ * @runTestsInSeparateProcesses This is necessary as instantiating a PHAR in memory may load/autoload some stuff which
+ *                              can create undesirable side-effects.
  */
 class GenerateDockerFileTest extends CommandTestCase
 {

@@ -14,32 +14,24 @@ declare(strict_types=1);
 
 namespace KevinGH\Box\Console\Command;
 
-use DirectoryIterator;
-use Generator;
-use InvalidArgumentException;
-use KevinGH\Box\Compactor\Php;
-use KevinGH\Box\Console\DisplayNormalizer;
-use KevinGH\Box\Test\CommandTestCase;
-use KevinGH\Box\Test\RequiresPharReadonlyOff;
-use Phar;
-use PharFileInfo;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Tester\CommandTester;
-use Symfony\Component\Finder\Finder;
-use Symfony\Component\Process\PhpExecutableFinder;
-use Traversable;
-use const JSON_PRETTY_PRINT;
 use function array_merge;
 use function array_unique;
 use function chdir;
+use DirectoryIterator;
 use function exec;
 use function extension_loaded;
 use function file_get_contents;
+use Generator;
+use function get_loaded_extensions;
 use function Humbug\get_contents;
+use function implode;
+use InvalidArgumentException;
 use function iterator_to_array;
 use function json_decode;
 use function json_encode;
+use const JSON_PRETTY_PRINT;
+use KevinGH\Box\Compactor\Php;
+use KevinGH\Box\Console\DisplayNormalizer;
 use function KevinGH\Box\FileSystem\chmod;
 use function KevinGH\Box\FileSystem\dump_file;
 use function KevinGH\Box\FileSystem\file_contents;
@@ -47,8 +39,15 @@ use function KevinGH\Box\FileSystem\mirror;
 use function KevinGH\Box\FileSystem\remove;
 use function KevinGH\Box\FileSystem\rename;
 use function KevinGH\Box\FileSystem\touch;
+use function KevinGH\Box\format_size;
 use function KevinGH\Box\get_box_version;
+use function KevinGH\Box\memory_to_bytes;
+use KevinGH\Box\Test\CommandTestCase;
+use KevinGH\Box\Test\RequiresPharReadonlyOff;
 use function mt_getrandmax;
+use Phar;
+use PharFileInfo;
+use const PHP_VERSION;
 use function phpversion;
 use function preg_match;
 use function preg_quote;
@@ -60,10 +59,17 @@ use function sprintf;
 use function str_replace;
 use function strlen;
 use function substr;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Process\PhpExecutableFinder;
+use Traversable;
 
 /**
  * @covers \KevinGH\Box\Console\Command\Compile
  * @covers \KevinGH\Box\Console\MessageRenderer
+ *
  * @runTestsInSeparateProcesses This is necessary as instantiating a PHAR in memory may load/autoload some stuff which
  *                              can create undesirable side-effects.
  */
@@ -86,7 +92,7 @@ class CompileTest extends CommandTestCase
             /**
              * {@inheritdoc}
              */
-            public function execute(array $input, array $options = [])
+            public function execute(array $input, array $options = []): int
             {
                 if ('compile' === $input['command']) {
                     $input['--no-parallel'] = null;
@@ -95,6 +101,8 @@ class CompileTest extends CommandTestCase
                 return parent::execute($input, $options);
             }
         };
+
+        remove(self::FIXTURES_DIR.'/dir010/index.phar');
     }
 
     /**
@@ -158,7 +166,6 @@ class CompileTest extends CommandTestCase
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -173,6 +180,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > 1 file(s)
 ? Auto-discover files? No
+? Exclude dev files? Yes
 ? Adding files
     > 6 file(s)
 ? Generating new stub
@@ -187,14 +195,17 @@ Box version 3.x-dev@151e40a
 ? Removing the Composer dump artefacts
 ? No compression
 ? Signing using a private key
-Private key passphrase:
+
+ Private key passphrase:
+ >
+
 ? Setting file permissions to 0700
 * Done.
 
 No recommendation found.
 No warning found.
 
- // PHAR: 44 files (100B)
+ // PHAR: 41 files (100B)
  // You can inspect the generated PHAR with the "info" command.
 
  // Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s
@@ -249,8 +260,6 @@ PHP;
             '/.box/.requirements.php',
             '/.box/bin/',
             '/.box/bin/check-requirements.php',
-            '/.box/composer.json',
-            '/.box/composer.lock',
             '/.box/src/',
             '/.box/src/Checker.php',
             '/.box/src/IO.php',
@@ -271,7 +280,6 @@ PHP;
             '/.box/vendor/composer/autoload_psr4.php',
             '/.box/vendor/composer/autoload_real.php',
             '/.box/vendor/composer/autoload_static.php',
-            '/.box/vendor/composer/installed.json',
             '/.box/vendor/composer/semver/',
             '/.box/vendor/composer/semver/LICENSE',
             '/.box/vendor/composer/semver/src/',
@@ -383,7 +391,6 @@ PHP;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading without a configuration file.
 
 🔨  Building the PHAR "/path/to/tmp/index.phar"
@@ -394,6 +401,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? Yes
 ? Adding files
     > 9 file(s)
 ? Generating new stub
@@ -411,7 +419,7 @@ Box version 3.x-dev@151e40a
 No recommendation found.
 No warning found.
 
- // PHAR: 48 files (100B)
+ // PHAR: 45 files (100B)
  // You can inspect the generated PHAR with the "info" command.
 
  // Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s
@@ -472,8 +480,6 @@ PHP;
             '/.box/.requirements.php',
             '/.box/bin/',
             '/.box/bin/check-requirements.php',
-            '/.box/composer.json',
-            '/.box/composer.lock',
             '/.box/src/',
             '/.box/src/Checker.php',
             '/.box/src/IO.php',
@@ -494,7 +500,6 @@ PHP;
             '/.box/vendor/composer/autoload_psr4.php',
             '/.box/vendor/composer/autoload_real.php',
             '/.box/vendor/composer/autoload_static.php',
-            '/.box/vendor/composer/installed.json',
             '/.box/vendor/composer/semver/',
             '/.box/vendor/composer/semver/LICENSE',
             '/.box/vendor/composer/semver/src/',
@@ -594,7 +599,6 @@ PHP;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -609,6 +613,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > 1 file(s)
 ? Auto-discover files? No
+? Exclude dev files? Yes
 ? Adding files
     > 4 file(s)
 ? Generating new stub
@@ -836,7 +841,6 @@ PHP;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -851,6 +855,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > 1 file(s)
 ? Auto-discover files? No
+? Exclude dev files? Yes
 ? Adding files
     > 4 file(s)
 ? Generating new stub
@@ -862,17 +867,23 @@ Box version 3.x-dev@151e40a
   'rand' => $rand,
 )
 ? Dumping the Composer autoloader
+    > '/usr/local/bin/composer' 'dump-autoload' '--classmap-authoritative' '--no-dev'
+Generating optimized autoload files (authoritative)\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08Generated optimized autoload files (authoritative) containing 0 classes
+
 ? Removing the Composer dump artefacts
 ? No compression
 ? Signing using a private key
-Private key passphrase:
+
+ Private key passphrase:
+ >
+
 ? Setting file permissions to 0754
 * Done.
 
 No recommendation found.
 No warning found.
 
- // PHAR: 44 files (100B)
+ // PHAR: 41 files (100B)
  // You can inspect the generated PHAR with the "info" command.
 
  // Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s
@@ -881,6 +892,12 @@ No warning found.
 OUTPUT;
 
         $actual = $this->normalizeDisplay($this->commandTester->getDisplay(true));
+
+        $actual = preg_replace(
+            '/(\/.*?composer)/',
+            '/usr/local/bin/composer',
+            $actual
+        );
 
         $this->assertSame($expected, $actual);
     }
@@ -940,7 +957,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -955,6 +971,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > 1 file(s)
 ? Auto-discover files? No
+? Exclude dev files? Yes
 ? Adding files
     > 4 file(s)
 ? Generating new stub
@@ -967,17 +984,23 @@ Box version 3.x-dev@151e40a
   'rand' => $rand,
 )
 ? Dumping the Composer autoloader
+    > '/usr/local/bin/composer' 'dump-autoload' '--classmap-authoritative' '--no-dev' '-v'
+Generating optimized autoload files (authoritative)\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08\x08Generated optimized autoload files (authoritative) containing 0 classes
+
 ? Removing the Composer dump artefacts
 ? No compression
 ? Signing using a private key
-Private key passphrase:
+
+ Private key passphrase:
+ >
+
 ? Setting file permissions to 0754
 * Done.
 
 No recommendation found.
 No warning found.
 
- // PHAR: 44 files (100B)
+ // PHAR: 41 files (100B)
  // You can inspect the generated PHAR with the "info" command.
 
  // Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s
@@ -990,53 +1013,43 @@ OUTPUT;
             (new PhpExecutableFinder())->find(),
             $expected
         );
+
         $actual = $this->normalizeDisplay($this->commandTester->getDisplay(true));
+
+        $actual = preg_replace(
+            '/(\/.*?composer)/',
+            '/usr/local/bin/composer',
+            $actual
+        );
 
         $this->assertSame($expected, $actual);
     }
 
-    /**
-     * @requires extension zlib
-     */
     public function test_it_can_build_a_PHAR_file_in_debug_mode(): void
     {
-        mirror(self::FIXTURES_DIR.'/dir000', $this->tmp);
+        dump_file(
+            'index.php',
+            $indexContents = <<<'PHP'
+<?php
 
-        $shebang = sprintf('#!%s', (new PhpExecutableFinder())->find());
+declare(strict_types=1);
 
+echo 'Yo';
+
+PHP
+        );
         dump_file(
             'box.json',
-            json_encode(
-                [
-                    'alias' => 'test.phar',
-                    'banner' => [
-                        'multiline',
-                        'custom banner',
-                    ],
-                    'chmod' => '0754',
-                    'compactors' => [Php::class],
-                    'directories' => ['a'],
-                    'files' => ['test.php'],
-                    'finder' => [['in' => 'one']],
-                    'finder-bin' => [['in' => 'two']],
-                    'algorithm' => 'OPENSSL',
-                    'key' => 'private.key',
-                    'key-pass' => true,
-                    'main' => 'run.php',
-                    'map' => [
-                        ['a/deep/test/directory' => 'sub'],
-                    ],
-                    'metadata' => ['rand' => $rand = random_int(0, mt_getrandmax())],
-                    'output' => 'test.phar',
-                    'shebang' => $shebang,
-                    'compression' => 'GZ',
-                ]
-            )
+            <<<'JSON'
+{
+    "alias": "index.phar",
+    "banner": ""
+}
+JSON
         );
 
         $this->assertDirectoryNotExists('.box_dump');
 
-        $this->commandTester->setInputs(['test']);    // Set input for the passphrase
         $this->commandTester->execute(
             [
                 'command' => 'compile',
@@ -1060,7 +1073,13 @@ OUTPUT;
             $xdebugLog = '[debug] The xdebug extension is not loaded';
         }
 
+        $memoryLog = sprintf(
+            '[debug] Current memory limit: "%s"',
+            format_size(memory_to_bytes(trim(ini_get('memory_limit'))), 0)
+        );
+
         $expected = <<<OUTPUT
+$memoryLog
 [debug] Checking BOX_ALLOW_XDEBUG
 $xdebugLog
 [debug] Disabled parallel processing
@@ -1074,45 +1093,33 @@ $xdebugLog
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
-🔨  Building the PHAR "/path/to/tmp/test.phar"
+🔨  Building the PHAR "/path/to/tmp/index.phar"
 
-? Removing the existing PHAR "/path/to/tmp/test.phar"
-? Registering compactors
-  + KevinGH\Box\Compactor\Php
-? Mapping paths
-  - a/deep/test/directory > sub
-? Adding main file: /path/to/tmp/run.php
-? Adding requirements checker
+? No compactor to register
+? Adding main file: /path/to/tmp/index.php
+? Skip requirements checker
 ? Adding binary files
-    > 1 file(s)
-? Auto-discover files? No
+    > No file found
+? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
-    > 4 file(s)
+    > No file found
 ? Generating new stub
-  - Using shebang line: #!__PHP_EXECUTABLE__
+  - Using shebang line: #!/usr/bin/env php
   - Using banner:
-    > multiline
-    > custom banner
-? Setting metadata
-  - array (
-  'rand' => $rand,
-)
-? Dumping the Composer autoloader
+    >
+? Skipping dumping the Composer autoloader
 ? Removing the Composer dump artefacts
-? Compressing with the algorithm "GZ"
-    > Warning: the extension "zlib" will now be required to execute the PHAR
-? Signing using a private key
-Private key passphrase:
-? Setting file permissions to 0754
+? No compression
+? Setting file permissions to 0755
 * Done.
 
 No recommendation found.
 No warning found.
 
- // PHAR: 44 files (100B)
+ // PHAR: 1 file (100B)
  // You can inspect the generated PHAR with the "info" command.
 
  // Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s
@@ -1120,11 +1127,6 @@ No warning found.
 
 OUTPUT;
 
-        $expected = str_replace(
-            '__PHP_EXECUTABLE__',
-            (new PhpExecutableFinder())->find(),
-            $expected
-        );
         $actual = $this->normalizeDisplay($this->commandTester->getDisplay(true));
 
         $this->assertSame($expected, $actual);
@@ -1132,51 +1134,8 @@ OUTPUT;
         $this->assertDirectoryExists('.box_dump');
 
         $expectedFiles = [
-            '.box_dump/.box/.requirements.php',
-            '.box_dump/.box/bin/check-requirements.php',
-            '.box_dump/.box/composer.json',
-            '.box_dump/.box/composer.lock',
-            '.box_dump/.box/src/Checker.php',
-            '.box_dump/.box/src/IO.php',
-            '.box_dump/.box/src/IsExtensionFulfilled.php',
-            '.box_dump/.box/src/IsFulfilled.php',
-            '.box_dump/.box/src/IsPhpVersionFulfilled.php',
-            '.box_dump/.box/src/Printer.php',
-            '.box_dump/.box/src/Requirement.php',
-            '.box_dump/.box/src/RequirementCollection.php',
-            '.box_dump/.box/src/Terminal.php',
-            '.box_dump/.box/vendor/autoload.php',
-            '.box_dump/.box/vendor/composer/autoload_classmap.php',
-            '.box_dump/.box/vendor/composer/autoload_namespaces.php',
-            '.box_dump/.box/vendor/composer/autoload_psr4.php',
-            '.box_dump/.box/vendor/composer/autoload_real.php',
-            '.box_dump/.box/vendor/composer/autoload_static.php',
-            '.box_dump/.box/vendor/composer/ClassLoader.php',
-            '.box_dump/.box/vendor/composer/installed.json',
-            '.box_dump/.box/vendor/composer/LICENSE',
-            '.box_dump/.box/vendor/composer/semver/LICENSE',
-            '.box_dump/.box/vendor/composer/semver/src/Comparator.php',
-            '.box_dump/.box/vendor/composer/semver/src/Constraint/AbstractConstraint.php',
-            '.box_dump/.box/vendor/composer/semver/src/Constraint/Constraint.php',
-            '.box_dump/.box/vendor/composer/semver/src/Constraint/ConstraintInterface.php',
-            '.box_dump/.box/vendor/composer/semver/src/Constraint/EmptyConstraint.php',
-            '.box_dump/.box/vendor/composer/semver/src/Constraint/MultiConstraint.php',
-            '.box_dump/.box/vendor/composer/semver/src/Semver.php',
-            '.box_dump/.box/vendor/composer/semver/src/VersionParser.php',
             '.box_dump/.box_configuration',
-            '.box_dump/one/test.php',
-            '.box_dump/run.php',
-            '.box_dump/sub/test.php',
-            '.box_dump/test.php',
-            '.box_dump/two/test.png',
-            '.box_dump/vendor/autoload.php',
-            '.box_dump/vendor/composer/autoload_classmap.php',
-            '.box_dump/vendor/composer/autoload_namespaces.php',
-            '.box_dump/vendor/composer/autoload_psr4.php',
-            '.box_dump/vendor/composer/autoload_real.php',
-            '.box_dump/vendor/composer/autoload_static.php',
-            '.box_dump/vendor/composer/ClassLoader.php',
-            '.box_dump/vendor/composer/LICENSE',
+            '.box_dump/index.php',
         ];
 
         $actualFiles = $this->normalizePaths(
@@ -1188,275 +1147,66 @@ OUTPUT;
 
         $this->assertSame($expectedFiles, $actualFiles);
 
-        $shebang = sprintf('#!%s', (new PhpExecutableFinder())->find());
-
-        $expectedDumpedConfig = <<<EOF
+        $expectedDumpedConfig = <<<'EOF'
 //
 // Processed content of the configuration file "/path/to/box.json" dumped for debugging purposes
+//
+// PHP Version: 10.0.0
+// PHP extensions: Core,date
+// OS: Darwin / 17.7.0
+// Command: bin/phpunit
+// Box: 3.x-dev@27df576
 // Time: 2018-05-24T20:59:15+00:00
 //
 
-KevinGH\Box\Configuration {#140
-  -file: "/path/to/box.json"
-  -fileMode: 492
-  -alias: "test.phar"
+KevinGH\Box\Configuration\Configuration {#140
+  -file: "box.json"
+  -fileMode: "0755"
+  -alias: "index.phar"
   -basePath: "/path/to"
-  -composerJson: array:2 [
-    0 => "/path/to/composer.json"
-    1 => array:1 [
-      "autoload" => array:1 [
-        "classmap" => array:1 [
-          0 => "./"
-        ]
-      ]
-    ]
-  ]
-  -composerLock: array:2 [
-    0 => null
-    1 => null
-  ]
-  -files: array:4 [
-    0 => SplFileInfo {#140
-      path: "/path/to"
-      filename: "test.php"
-      basename: "test.php"
-      pathname: "/path/to/test.php"
-      extension: "php"
-      realPath: "/path/to/test.php"
-      aTime: 2018-05-24 20:59:15
-      mTime: 2018-05-24 20:59:15
-      cTime: 2018-05-24 20:59:15
-      inode: 33452869
-      size: 306
-      perms: 0100644
-      owner: 501
-      group: 20
-      type: "file"
-      writable: true
-      readable: true
-      executable: false
-      file: true
-      dir: false
-      link: false
-    }
-    1 => SplFileInfo {#140
-      path: "/path/to"
-      filename: "composer.json"
-      basename: "composer.json"
-      pathname: "/path/to/composer.json"
-      extension: "json"
-      realPath: "/path/to/composer.json"
-      aTime: 2018-05-24 20:59:15
-      mTime: 2018-05-24 20:59:15
-      cTime: 2018-05-24 20:59:15
-      inode: 33452869
-      size: 54
-      perms: 0100644
-      owner: 501
-      group: 20
-      type: "file"
-      writable: true
-      readable: true
-      executable: false
-      file: true
-      dir: false
-      link: false
-    }
-    2 => Symfony\Component\Finder\SplFileInfo {#140
-      -relativePath: "deep/test/directory"
-      -relativePathname: "deep/test/directory/test.php"
-      path: "/path/to/a/deep/test/directory"
-      filename: "test.php"
-      basename: "test.php"
-      pathname: "/path/to/a/deep/test/directory/test.php"
-      extension: "php"
-      realPath: "/path/to/a/deep/test/directory/test.php"
-      aTime: 2018-05-24 20:59:15
-      mTime: 2018-05-24 20:59:15
-      cTime: 2018-05-24 20:59:15
-      inode: 33452869
-      size: 0
-      perms: 0100644
-      owner: 501
-      group: 20
-      type: "file"
-      writable: true
-      readable: true
-      executable: false
-      file: true
-      dir: false
-      link: false
-    }
-    3 => Symfony\Component\Finder\SplFileInfo {#140
-      -relativePath: ""
-      -relativePathname: "test.php"
-      path: "/path/to/one"
-      filename: "test.php"
-      basename: "test.php"
-      pathname: "/path/to/one/test.php"
-      extension: "php"
-      realPath: "/path/to/one/test.php"
-      aTime: 2018-05-24 20:59:15
-      mTime: 2018-05-24 20:59:15
-      cTime: 2018-05-24 20:59:15
-      inode: 33452869
-      size: 0
-      perms: 0100644
-      owner: 501
-      group: 20
-      type: "file"
-      writable: true
-      readable: true
-      executable: false
-      file: true
-      dir: false
-      link: false
-    }
-  ]
-  -binaryFiles: array:1 [
-    0 => Symfony\Component\Finder\SplFileInfo {#140
-      -relativePath: ""
-      -relativePathname: "test.png"
-      path: "/path/to/two"
-      filename: "test.png"
-      basename: "test.png"
-      pathname: "/path/to/two/test.png"
-      extension: "png"
-      realPath: "/path/to/two/test.png"
-      aTime: 2018-05-24 20:59:15
-      mTime: 2018-05-24 20:59:15
-      cTime: 2018-05-24 20:59:15
-      inode: 33452869
-      size: 0
-      perms: 0100644
-      owner: 501
-      group: 20
-      type: "file"
-      writable: true
-      readable: true
-      executable: false
-      file: true
-      dir: false
-      link: false
-    }
-  ]
-  -autodiscoveredFiles: false
-  -dumpAutoload: true
+  -composerJson: KevinGH\Box\Composer\ComposerFile {#140
+    -path: null
+    -contents: []
+  }
+  -composerLock: KevinGH\Box\Composer\ComposerFile {#140
+    -path: null
+    -contents: []
+  }
+  -files: []
+  -binaryFiles: []
+  -autodiscoveredFiles: true
+  -dumpAutoload: false
   -excludeComposerFiles: true
-  -compactors: array:1 [
-    0 => KevinGH\Box\Compactor\Php {#140
-      -annotationParser: KevinGH\Box\Annotation\DocblockAnnotationParser {#140
-        -docblockParser: KevinGH\Box\Annotation\DocblockParser {#140}
-        -annotationDumper: KevinGH\Box\Annotation\AnnotationDumper {#140}
-        -ignored: array:54 [
-          0 => "abstract"
-          1 => "access"
-          2 => "annotation"
-          3 => "api"
-          4 => "attribute"
-          5 => "attributes"
-          6 => "author"
-          7 => "category"
-          8 => "code"
-          9 => "codecoverageignore"
-          10 => "codecoverageignoreend"
-          11 => "codecoverageignorestart"
-          12 => "copyright"
-          13 => "deprec"
-          14 => "deprecated"
-          15 => "endcode"
-          16 => "example"
-          17 => "exception"
-          18 => "filesource"
-          19 => "final"
-          20 => "fixme"
-          21 => "global"
-          22 => "ignore"
-          23 => "ingroup"
-          24 => "inheritdoc"
-          25 => "internal"
-          26 => "license"
-          27 => "link"
-          28 => "magic"
-          29 => "method"
-          30 => "name"
-          31 => "override"
-          32 => "package"
-          33 => "package_version"
-          34 => "param"
-          35 => "private"
-          36 => "property"
-          37 => "required"
-          38 => "return"
-          39 => "see"
-          40 => "since"
-          41 => "static"
-          42 => "staticvar"
-          43 => "subpackage"
-          44 => "suppresswarnings"
-          45 => "target"
-          46 => "throw"
-          47 => "throws"
-          48 => "todo"
-          49 => "tutorial"
-          50 => "usedby"
-          51 => "uses"
-          52 => "var"
-          53 => "version"
-        ]
-      }
-      -extensions: array:1 [
-        0 => "php"
-      ]
-    }
-  ]
-  -compressionAlgorithm: 4096
-  -mainScriptPath: "/path/to/run.php"
+  -excludeDevFiles: false
+  -compactors: []
+  -compressionAlgorithm: "NONE"
+  -mainScriptPath: "index.php"
   -mainScriptContents: """
-    <?php\\n
-    \\n
-    declare(strict_types=1);\\n
-    \\n
-    /*\\n
-     * This file is part of the box project.\\n
-     *\\n
-     * (c) Kevin Herrera <kevin@herrera.io>\\n
-     *     Théo Fidry <theo.fidry@gmail.com>\\n
-     *\\n
-     * This source file is subject to the MIT license that is bundled\\n
-     * with this source code in the file LICENSE.\\n
-     */\\n
-    \\n
-    require 'test.php';\\n
+    <?php\n
+    \n
+    declare(strict_types=1);\n
+    \n
+    echo 'Yo';\n
     """
   -fileMapper: KevinGH\Box\MapFile {#140
     -basePath: "/path/to"
-    -map: array:1 [
-      0 => array:1 [
-        "a/deep/test/directory" => "sub"
-      ]
-    ]
+    -map: []
   }
-  -metadata: array:1 [
-    "rand" => $rand
-  ]
-  -tmpOutputPath: "/path/to/test.phar"
-  -outputPath: "/path/to/test.phar"
+  -metadata: null
+  -tmpOutputPath: "index.phar"
+  -outputPath: "index.phar"
   -privateKeyPassphrase: null
-  -privateKeyPath: "/path/to/private.key"
-  -promptForPrivateKey: true
+  -privateKeyPath: null
+  -promptForPrivateKey: false
   -processedReplacements: []
-  -shebang: "$shebang"
-  -signingAlgorithm: 16
-  -stubBannerContents: """
-    multiline\\n
-    custom banner
-    """
+  -shebang: "#!/usr/bin/env php"
+  -signingAlgorithm: "SHA1"
+  -stubBannerContents: ""
   -stubBannerPath: null
   -stubPath: null
   -isInterceptFileFuncs: false
   -isStubGenerated: true
-  -checkRequirements: true
+  -checkRequirements: false
   -warnings: []
   -recommendations: []
 }
@@ -1469,45 +1219,68 @@ EOF;
             file_contents('.box_dump/.box_configuration')
         );
 
+        // Replace objects IDs
         $actualDumpedConfig = preg_replace(
             '/ \{#\d{3,}/',
             ' {#140',
             $actualDumpedConfig
         );
 
+        // Replace the expected PHP version
+        $actualDumpedConfig = str_replace(
+            sprintf(
+                'PHP Version: %s',
+                PHP_VERSION
+            ),
+            'PHP Version: 10.0.0',
+            $actualDumpedConfig
+        );
+
+        // Replace the expected PHP extensions
+        $actualDumpedConfig = str_replace(
+            sprintf(
+                'PHP extensions: %s',
+                implode(',', get_loaded_extensions())
+            ),
+            'PHP extensions: Core,date',
+            $actualDumpedConfig
+        );
+
+        // Replace the expected OS version
+        $actualDumpedConfig = str_replace(
+            sprintf(
+                'OS: %s / %s',
+                PHP_OS,
+                php_uname('r')
+            ),
+            'OS: Darwin / 17.7.0',
+            $actualDumpedConfig
+        );
+
+        // Replace the expected command
+        $actualDumpedConfig = str_replace(
+            sprintf(
+                'Command: %s',
+                implode(' ', $GLOBALS['argv'])
+            ),
+            'Command: bin/phpunit',
+            $actualDumpedConfig
+        );
+
+        // Replace the expected Box version
+        $actualDumpedConfig = str_replace(
+            sprintf(
+                'Box: %s',
+                get_box_version()
+            ),
+            'Box: 3.x-dev@27df576',
+            $actualDumpedConfig
+        );
+
+        // Replace the expected time
         $actualDumpedConfig = preg_replace(
             '/Time: \d{4,}-\d{2,}-\d{2,}T\d{2,}:\d{2,}:\d{2,}\+\d{2,}:\d{2,}/',
             'Time: 2018-05-24T20:59:15+00:00',
-            $actualDumpedConfig
-        );
-
-        $actualDumpedConfig = preg_replace(
-            '/([a-z]Time): \d{4,}-\d{2,}-\d{2,} \d{2,}:\d{2,}:\d{2,}/',
-            '$1: 2018-05-24 20:59:15',
-            $actualDumpedConfig
-        );
-
-        $actualDumpedConfig = preg_replace(
-            '/inode: \d+/',
-            'inode: 33452869',
-            $actualDumpedConfig
-        );
-
-        $actualDumpedConfig = preg_replace(
-            '/perms: \d+/',
-            'perms: 0100644',
-            $actualDumpedConfig
-        );
-
-        $actualDumpedConfig = preg_replace(
-            '/owner: \d+/',
-            'owner: 501',
-            $actualDumpedConfig
-        );
-
-        $actualDumpedConfig = preg_replace(
-            '/group: \d+/',
-            'group: 20',
             $actualDumpedConfig
         );
 
@@ -1515,25 +1288,8 @@ EOF;
 
         // Checks one of the dumped file from the PHAR to ensure the encoding of the extracted file is correct
         $this->assertSame(
-            get_contents('.box_dump/run.php'),
-            <<<'PHP'
-<?php
-
-declare(strict_types=1);
-
-
-
-
-
-
-
-
-
-
-
-require 'test.php';
-
-PHP
+            get_contents('.box_dump/index.php'),
+            $indexContents
         );
     }
 
@@ -1810,7 +1566,6 @@ PHP
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -1824,6 +1579,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -2073,7 +1829,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2084,6 +1839,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -2140,7 +1896,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2151,6 +1906,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Using stub file: /path/to/tmp/stub.php
@@ -2207,7 +1963,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2218,6 +1973,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > 1 file(s)
 ? Generating new stub
@@ -2282,7 +2038,6 @@ JSON
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2293,6 +2048,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > 1 file(s)
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Using stub file: /path/to/tmp/stub.php
@@ -2357,7 +2113,6 @@ JSON
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2368,6 +2123,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Using stub file: /path/to/tmp/stub.php
@@ -2432,7 +2188,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2443,6 +2198,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -2510,7 +2266,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/foo/bar/test.phar"
@@ -2521,6 +2276,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -2641,7 +2397,7 @@ OUTPUT;
 
         $boxRawConfig = json_decode(file_get_contents('box.json'), true, 512, JSON_PRETTY_PRINT);
         $boxRawConfig['shebang'] = false;
-        dump_file('box.json', json_encode($boxRawConfig), JSON_PRETTY_PRINT);
+        dump_file('box.json', json_encode($boxRawConfig, JSON_PRETTY_PRINT));
 
         $this->commandTester->execute(
             ['command' => 'compile'],
@@ -2664,7 +2420,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test.phar"
@@ -2675,6 +2430,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -2753,7 +2509,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/test"
@@ -2764,6 +2519,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Using stub file: /path/to/tmp/stub.php
@@ -2965,7 +2721,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/index.phar"
@@ -2976,6 +2731,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -3042,7 +2798,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/index.phar"
@@ -3053,6 +2808,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? No
 ? Adding files
     > No file found
 ? Generating new stub
@@ -3115,7 +2871,6 @@ OUTPUT;
 
 Box version 3.x-dev@151e40a
 
-
  // Loading the configuration file "/path/to/box.json.dist".
 
 🔨  Building the PHAR "/path/to/tmp/index.phar"
@@ -3126,6 +2881,7 @@ Box version 3.x-dev@151e40a
 ? Adding binary files
     > No file found
 ? Auto-discover files? Yes
+? Exclude dev files? Yes
 ? Adding files
     > 1 file(s)
 ? Generating new stub
@@ -3143,7 +2899,7 @@ Box version 3.x-dev@151e40a
 No recommendation found.
 No warning found.
 
- // PHAR: 40 files (100B)
+ // PHAR: 37 files (100B)
  // You can inspect the generated PHAR with the "info" command.
 
  // Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s
@@ -3195,7 +2951,7 @@ OUTPUT;
         );
 
         $display = preg_replace(
-            '/\/\/ Memory usage: \d+\.\d{2}MB \(peak: \d+\.\d{2}MB\), time: \d+\.\d{2}s/',
+            '/\/\/ Memory usage: \d+\.\d{2}MB \(peak: \d+\.\d{2}MB\), time: .*?sec/',
             '// Memory usage: 5.00MB (peak: 10.00MB), time: 0.00s',
             $display
         );

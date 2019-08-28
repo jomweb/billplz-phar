@@ -15,49 +15,30 @@ declare(strict_types=1);
 namespace KevinGH\Box\Console\Command;
 
 use Amp\MultiReasonException;
-use Assert\Assertion;
-use DateTimeImmutable;
-use DateTimeZone;
-use KevinGH\Box\Box;
-use KevinGH\Box\Compactor;
-use KevinGH\Box\Composer\ComposerConfiguration;
-use KevinGH\Box\Configuration;
-use KevinGH\Box\Console\Logger\CompileLogger;
-use KevinGH\Box\Console\MessageRenderer;
-use KevinGH\Box\Console\OutputConfigurator;
-use KevinGH\Box\MapFile;
-use KevinGH\Box\PhpSettingsHandler;
-use KevinGH\Box\RequirementChecker\RequirementsDumper;
-use KevinGH\Box\StubGenerator;
-use RuntimeException;
-use stdClass;
-use Symfony\Component\Console\Helper\QuestionHelper;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Input\StringInput;
-use Symfony\Component\Console\Logger\ConsoleLogger;
-use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\VarDumper\Cloner\VarCloner;
-use Symfony\Component\VarDumper\Dumper\CliDumper;
-use const DATE_ATOM;
-use const KevinGH\Box\BOX_ALLOW_XDEBUG;
-use const PHP_EOL;
-use const POSIX_RLIMIT_INFINITY;
-use const POSIX_RLIMIT_NOFILE;
 use function array_map;
 use function array_search;
 use function array_shift;
+use Assert\Assertion;
 use function count;
 use function decoct;
 use function explode;
 use function file_exists;
 use function filesize;
-use function function_exists;
 use function get_class;
+use Humbug\PhpScoper\Whitelist;
 use function implode;
 use function is_string;
+use KevinGH\Box\Box;
+use const KevinGH\Box\BOX_ALLOW_XDEBUG;
+use function KevinGH\Box\bump_open_file_descriptor_limit;
+use function KevinGH\Box\check_php_settings;
+use KevinGH\Box\Compactor\Compactor;
+use KevinGH\Box\Composer\ComposerConfiguration;
+use KevinGH\Box\Composer\ComposerOrchestrator;
+use KevinGH\Box\Configuration\Configuration;
+use KevinGH\Box\Console\IO\IO;
+use KevinGH\Box\Console\Logger\CompilerLogger;
+use KevinGH\Box\Console\MessageRenderer;
 use function KevinGH\Box\disable_parallel_processing;
 use function KevinGH\Box\FileSystem\chmod;
 use function KevinGH\Box\FileSystem\dump_file;
@@ -65,24 +46,30 @@ use function KevinGH\Box\FileSystem\make_path_relative;
 use function KevinGH\Box\FileSystem\remove;
 use function KevinGH\Box\FileSystem\rename;
 use function KevinGH\Box\format_size;
+use function KevinGH\Box\format_time;
 use function KevinGH\Box\get_phar_compression_algorithms;
+use KevinGH\Box\MapFile;
+use KevinGH\Box\RequirementChecker\RequirementsDumper;
+use KevinGH\Box\StubGenerator;
 use function memory_get_peak_usage;
 use function memory_get_usage;
 use function microtime;
-use function posix_getrlimit;
-use function posix_setrlimit;
+use const PHP_EOL;
 use function putenv;
-use function round;
+use RuntimeException;
 use function sprintf;
-use function strlen;
-use function substr;
+use stdClass;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Input\StringInput;
+use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\Question;
 use function var_export;
 
 /**
  * @final
  * @private
  */
-class Compile extends ConfigurableCommand
+class Compile extends ConfigurableBaseCommand
 {
     use ChangeableWorkingDirectory;
 
@@ -165,21 +152,19 @@ HELP;
     /**
      * {@inheritdoc}
      */
-    protected function execute(InputInterface $input, OutputInterface $output): void
+    protected function executeCommand(IO $io): int
     {
-        $io = new SymfonyStyle($input, $output);
-
-        OutputConfigurator::configure($output);
+        $input = $io->getInput();
 
         if ($input->getOption(self::NO_RESTART_OPTION)) {
             putenv(BOX_ALLOW_XDEBUG.'=1');
         }
 
         if ($debug = $input->getOption(self::DEBUG_OPTION)) {
-            $output->setVerbosity(OutputInterface::VERBOSITY_DEBUG);
+            $io->setVerbosity(OutputInterface::VERBOSITY_DEBUG);
         }
 
-        (new PhpSettingsHandler(new ConsoleLogger($output)))->check();
+        check_php_settings($io);
 
         if ($input->getOption(self::NO_PARALLEL_PROCESSING_OPTION)) {
             disable_parallel_processing();
@@ -193,11 +178,11 @@ HELP;
 
         $config = $input->getOption(self::NO_CONFIG_OPTION)
             ? Configuration::create(null, new stdClass())
-            : $this->getConfig($input, $output, true)
+            : $this->getConfig($io, true)
         ;
         $path = $config->getOutputPath();
 
-        $logger = new CompileLogger($io);
+        $logger = new CompilerLogger($io);
 
         $startTime = microtime(true);
 
@@ -205,28 +190,27 @@ HELP;
 
         $this->removeExistingArtifacts($config, $logger, $debug);
 
-        $box = $this->createPhar($config, $input, $output, $logger, $io, $debug);
+        $box = $this->createPhar($config, $logger, $io, $debug);
 
         $this->correctPermissions($path, $config, $logger);
 
         $this->logEndBuilding($config, $logger, $io, $box, $path, $startTime);
 
         if ($input->getOption(self::WITH_DOCKER_OPTION)) {
-            $this->generateDockerFile($output);
+            $this->generateDockerFile($io);
         }
+
+        return 0;
     }
 
     private function createPhar(
         Configuration $config,
-        InputInterface $input,
-        OutputInterface $output,
-        CompileLogger $logger,
-        SymfonyStyle $io,
+        CompilerLogger $logger,
+        IO $io,
         bool $debug
     ): Box {
-        $box = Box::create(
-            $config->getTmpOutputPath()
-        );
+        $box = Box::create($config->getTmpOutputPath());
+
         $box->startBuffering();
 
         $this->registerReplacementValues($config, $box, $logger);
@@ -252,9 +236,15 @@ HELP;
             $box->getPhar()->extractTo(self::DEBUG_DIR, null, true);
         }
 
-        $this->configureCompressionAlgorithm($config, $box, $input->getOption(self::DEV_OPTION), $io, $logger);
+        $this->configureCompressionAlgorithm(
+            $config,
+            $box,
+            $io->getInput()->getOption(self::DEV_OPTION),
+            $io,
+            $logger
+        );
 
-        $this->signPhar($config, $box, $config->getTmpOutputPath(), $input, $output, $logger);
+        $this->signPhar($config, $box, $config->getTmpOutputPath(), $io, $logger);
 
         if ($config->getTmpOutputPath() !== $config->getOutputPath()) {
             rename($config->getTmpOutputPath(), $config->getOutputPath());
@@ -263,32 +253,16 @@ HELP;
         return $box;
     }
 
-    private function removeExistingArtifacts(Configuration $config, CompileLogger $logger, bool $debug): void
+    private function removeExistingArtifacts(Configuration $config, CompilerLogger $logger, bool $debug): void
     {
         $path = $config->getOutputPath();
 
         if ($debug) {
             remove(self::DEBUG_DIR);
 
-            $date = (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format(DATE_ATOM);
-            $file = $config->getConfigurationFile() ?? 'No config file';
-
-            remove(self::DEBUG_DIR);
-
             dump_file(
                 self::DEBUG_DIR.'/.box_configuration',
-                <<<EOF
-//
-// Processed content of the configuration file "$file" dumped for debugging purposes
-// Time: $date
-//
-
-
-EOF
-                .(new CliDumper())->dump(
-                    (new VarCloner())->cloneVar($config),
-                    true
-                )
+                ConfigurationExporter::export($config)
             );
         }
 
@@ -297,7 +271,7 @@ EOF
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             sprintf(
                 'Removing the existing PHAR "%s"',
                 $path
@@ -307,7 +281,7 @@ EOF
         remove($path);
     }
 
-    private function registerReplacementValues(Configuration $config, Box $box, CompileLogger $logger): void
+    private function registerReplacementValues(Configuration $config, Box $box, CompilerLogger $logger): void
     {
         $values = $config->getReplacements();
 
@@ -316,13 +290,13 @@ EOF
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             'Setting replacement values'
         );
 
         foreach ($values as $key => $value) {
             $logger->log(
-                CompileLogger::PLUS_PREFIX,
+                CompilerLogger::PLUS_PREFIX,
                 sprintf(
                     '%s: %s',
                     $key,
@@ -334,13 +308,13 @@ EOF
         $box->registerPlaceholders($values);
     }
 
-    private function registerCompactors(Configuration $config, Box $box, CompileLogger $logger): void
+    private function registerCompactors(Configuration $config, Box $box, CompilerLogger $logger): void
     {
         $compactors = $config->getCompactors();
 
-        if ([] === $compactors) {
+        if (0 === count($compactors)) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 'No compactor to register'
             );
 
@@ -348,30 +322,30 @@ EOF
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             'Registering compactors'
         );
 
         $logCompactors = static function (Compactor $compactor) use ($logger): void {
             $compactorClassParts = explode('\\', get_class($compactor));
 
-            if ('_HumbugBox' === substr($compactorClassParts[0], 0, strlen('_HumbugBox'))) {
+            if (0 === strpos($compactorClassParts[0], '_HumbugBox')) {
                 // Keep the non prefixed class name for the user
                 array_shift($compactorClassParts);
             }
 
             $logger->log(
-                CompileLogger::PLUS_PREFIX,
+                CompilerLogger::PLUS_PREFIX,
                 implode('\\', $compactorClassParts)
             );
         };
 
-        array_map($logCompactors, $compactors);
+        array_map($logCompactors, $compactors->toArray());
 
         $box->registerCompactors($compactors);
     }
 
-    private function registerFileMapping(Configuration $config, Box $box, CompileLogger $logger): void
+    private function registerFileMapping(Configuration $config, Box $box, CompilerLogger $logger): void
     {
         $fileMapper = $config->getFileMapper();
 
@@ -380,29 +354,36 @@ EOF
         $box->registerFileMapping($fileMapper);
     }
 
-    private function addFiles(Configuration $config, Box $box, CompileLogger $logger, SymfonyStyle $io): void
+    private function addFiles(Configuration $config, Box $box, CompilerLogger $logger, IO $io): void
     {
-        $logger->log(CompileLogger::QUESTION_MARK_PREFIX, 'Adding binary files');
+        $logger->log(CompilerLogger::QUESTION_MARK_PREFIX, 'Adding binary files');
 
         $count = count($config->getBinaryFiles());
 
         $box->addFiles($config->getBinaryFiles(), true);
 
         $logger->log(
-            CompileLogger::CHEVRON_PREFIX,
+            CompilerLogger::CHEVRON_PREFIX,
             0 === $count
                 ? 'No file found'
                 : sprintf('%d file(s)', $count)
         );
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             sprintf(
                 'Auto-discover files? %s',
                 $config->hasAutodiscoveredFiles() ? 'Yes' : 'No'
             )
         );
-        $logger->log(CompileLogger::QUESTION_MARK_PREFIX, 'Adding files');
+        $logger->log(
+            CompilerLogger::QUESTION_MARK_PREFIX,
+            sprintf(
+                'Exclude dev files? %s',
+                $config->excludeDevFiles() ? 'Yes' : 'No'
+            )
+        );
+        $logger->log(CompilerLogger::QUESTION_MARK_PREFIX, 'Adding files');
 
         $count = count($config->getFiles());
 
@@ -418,18 +399,18 @@ EOF
         }
 
         $logger->log(
-            CompileLogger::CHEVRON_PREFIX,
+            CompilerLogger::CHEVRON_PREFIX,
             0 === $count
                 ? 'No file found'
                 : sprintf('%d file(s)', $count)
         );
     }
 
-    private function registerMainScript(Configuration $config, Box $box, CompileLogger $logger): ?string
+    private function registerMainScript(Configuration $config, Box $box, CompilerLogger $logger): ?string
     {
         if (false === $config->hasMainScript()) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 'No main script path configured'
             );
 
@@ -439,7 +420,7 @@ EOF
         $main = $config->getMainScriptPath();
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             sprintf(
                 'Adding main file: %s',
                 $main
@@ -455,7 +436,7 @@ EOF
 
         if ($localMain !== $relativeMain) {
             $logger->log(
-                CompileLogger::CHEVRON_PREFIX,
+                CompilerLogger::CHEVRON_PREFIX,
                 $localMain
             );
         }
@@ -463,11 +444,11 @@ EOF
         return $localMain;
     }
 
-    private function registerRequirementsChecker(Configuration $config, Box $box, CompileLogger $logger): bool
+    private function registerRequirementsChecker(Configuration $config, Box $box, CompilerLogger $logger): bool
     {
         if (false === $config->checkRequirements()) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 'Skip requirements checker'
             );
 
@@ -475,7 +456,7 @@ EOF
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             'Adding requirements checker'
         );
 
@@ -494,11 +475,16 @@ EOF
         return true;
     }
 
-    private function registerStub(Configuration $config, Box $box, ?string $main, bool $checkRequirements, CompileLogger $logger): void
-    {
+    private function registerStub(
+        Configuration $config,
+        Box $box,
+        ?string $main,
+        bool $checkRequirements,
+        CompilerLogger $logger
+    ): void {
         if ($config->isStubGenerated()) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 'Generating new stub'
             );
 
@@ -511,7 +497,7 @@ EOF
 
         if (null !== ($stub = $config->getStubPath())) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 sprintf(
                     'Using stub file: %s',
                     $stub
@@ -536,21 +522,21 @@ EOF
         $box->getPhar()->setDefaultStub($main);
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             'Using default stub'
         );
     }
 
-    private function configureMetadata(Configuration $config, Box $box, CompileLogger $logger): void
+    private function configureMetadata(Configuration $config, Box $box, CompilerLogger $logger): void
     {
         if (null !== ($metadata = $config->getMetadata())) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 'Setting metadata'
             );
 
             $logger->log(
-                CompileLogger::MINUS_PREFIX,
+                CompilerLogger::MINUS_PREFIX,
                 is_string($metadata) ? $metadata : var_export($metadata, true)
             );
 
@@ -558,26 +544,40 @@ EOF
         }
     }
 
-    private function commit(Box $box, Configuration $config, CompileLogger $logger): void
+    private function commit(Box $box, Configuration $config, CompilerLogger $logger): void
     {
         $message = $config->dumpAutoload()
             ? 'Dumping the Composer autoloader'
             : 'Skipping dumping the Composer autoloader'
         ;
 
-        $logger->log(CompileLogger::QUESTION_MARK_PREFIX, $message);
+        $logger->log(CompilerLogger::QUESTION_MARK_PREFIX, $message);
 
-        $box->endBuffering($config->dumpAutoload());
+        $excludeDevFiles = $config->excludeDevFiles();
+        $io = $logger->getIO();
+
+        $box->endBuffering(
+            $config->dumpAutoload()
+                ? static function (Whitelist $whitelist, string $prefix) use ($excludeDevFiles, $io): void {
+                    ComposerOrchestrator::dumpAutoload(
+                        $whitelist,
+                        $prefix,
+                        $excludeDevFiles,
+                        $io
+                    );
+                }
+                : null
+        );
     }
 
-    private function checkComposerFiles(Box $box, Configuration $config, CompileLogger $logger): void
+    private function checkComposerFiles(Box $box, Configuration $config, CompilerLogger $logger): void
     {
         $message = $config->excludeComposerFiles()
             ? 'Removing the Composer dump artefacts'
             : 'Keep the Composer dump artefacts'
         ;
 
-        $logger->log(CompileLogger::QUESTION_MARK_PREFIX, $message);
+        $logger->log(CompilerLogger::QUESTION_MARK_PREFIX, $message);
 
         if ($config->excludeComposerFiles()) {
             $box->removeComposerArtefacts(
@@ -588,11 +588,16 @@ EOF
         }
     }
 
-    private function configureCompressionAlgorithm(Configuration $config, Box $box, bool $dev, SymfonyStyle $io, CompileLogger $logger): void
-    {
+    private function configureCompressionAlgorithm(
+        Configuration $config,
+        Box $box,
+        bool $dev,
+        IO $io,
+        CompilerLogger $logger
+    ): void {
         if (null === ($algorithm = $config->getCompressionAlgorithm())) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 'No compression'
             );
 
@@ -600,27 +605,27 @@ EOF
         }
 
         if ($dev) {
-            $logger->log(CompileLogger::QUESTION_MARK_PREFIX, 'Dev mode detected: skipping the compression');
+            $logger->log(CompilerLogger::QUESTION_MARK_PREFIX, 'Dev mode detected: skipping the compression');
 
             return;
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             sprintf(
                 'Compressing with the algorithm "<comment>%s</comment>"',
-                array_search($algorithm, get_phar_compression_algorithms(), true)
+                (string) array_search($algorithm, get_phar_compression_algorithms(), true)
             )
         );
 
-        $restoreLimit = self::bumpOpenFileDescriptorLimit($box, $io);
+        $restoreLimit = bump_open_file_descriptor_limit($box, $io);
 
         try {
             $extension = $box->compress($algorithm);
 
             if (null !== $extension) {
                 $logger->log(
-                    CompileLogger::CHEVRON_PREFIX,
+                    CompilerLogger::CHEVRON_PREFIX,
                     sprintf(
                         '<info>Warning: the extension "%s" will now be required to execute the PHAR</info>',
                         $extension
@@ -636,73 +641,12 @@ EOF
         }
     }
 
-    /**
-     * Bumps the maximum number of open file descriptor if necessary.
-     *
-     * @return callable callable to call to restore the original maximum number of open files descriptors
-     */
-    private static function bumpOpenFileDescriptorLimit(Box $box, SymfonyStyle $io): callable
-    {
-        $filesCount = count($box) + 128;  // Add a little extra for good measure
-
-        if (false === function_exists('posix_getrlimit') || false === function_exists('posix_setrlimit')) {
-            $io->writeln(
-                '<info>[debug] Could not check the maximum number of open file descriptors: the functions "posix_getrlimit()" and '
-                .'"posix_setrlimit" could not be found.</info>',
-                OutputInterface::VERBOSITY_DEBUG
-            );
-
-            return static function (): void {};
-        }
-
-        $softLimit = posix_getrlimit()['soft openfiles'];
-        $hardLimit = posix_getrlimit()['hard openfiles'];
-
-        if ($softLimit >= $filesCount) {
-            return static function (): void {};
-        }
-
-        $io->writeln(
-            sprintf(
-                '<info>[debug] Increased the maximum number of open file descriptors from ("%s", "%s") to ("%s", "%s")'
-                .'</info>',
-                $softLimit,
-                $hardLimit,
-                $filesCount,
-                'unlimited'
-            ),
-            OutputInterface::VERBOSITY_DEBUG
-        );
-
-        posix_setrlimit(
-            POSIX_RLIMIT_NOFILE,
-            $filesCount,
-            'unlimited' === $hardLimit ? POSIX_RLIMIT_INFINITY : $hardLimit
-        );
-
-        return static function () use ($io, $softLimit, $hardLimit): void {
-            if (function_exists('posix_setrlimit') && isset($softLimit, $hardLimit)) {
-                posix_setrlimit(
-                    POSIX_RLIMIT_NOFILE,
-                    $softLimit,
-                    'unlimited' === $hardLimit ? POSIX_RLIMIT_INFINITY : $hardLimit
-                );
-
-                $io->writeln(
-                    '<info>[debug] Restored the maximum number of open file descriptors</info>',
-                    OutputInterface::VERBOSITY_DEBUG
-                );
-            }
-        };
-    }
-
     private function signPhar(
         Configuration $config,
         Box $box,
         string $path,
-        InputInterface $input,
-        OutputInterface $output,
-        CompileLogger $logger
+        IO $io,
+        CompilerLogger $logger
     ): void {
         // Sign using private key when applicable
         remove($path.'.pubkey');
@@ -710,22 +654,22 @@ EOF
         $key = $config->getPrivateKeyPath();
 
         if (null === $key) {
-            if (null !== ($algorithm = $config->getSigningAlgorithm())) {
-                $box->getPhar()->setSignatureAlgorithm($algorithm);
-            }
+            $box->getPhar()->setSignatureAlgorithm(
+                $config->getSigningAlgorithm()
+            );
 
             return;
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             'Signing using a private key'
         );
 
         $passphrase = $config->getPrivateKeyPassphrase();
 
         if ($config->promptForPrivateKey()) {
-            if (false === $input->isInteractive()) {
+            if (false === $io->isInteractive()) {
                 throw new RuntimeException(
                     sprintf(
                         'Accessing to the private key "%s" requires a passphrase but none provided. Either '
@@ -735,26 +679,23 @@ EOF
                 );
             }
 
-            /** @var QuestionHelper $dialog */
-            $dialog = $this->getHelper('question');
-
-            $question = new Question('Private key passphrase:');
+            $question = new Question('Private key passphrase');
             $question->setHidden(false);
             $question->setHiddenFallback(false);
 
-            $passphrase = $dialog->ask($input, $output, $question);
+            $passphrase = $io->askQuestion($question);
 
-            $output->writeln('');
+            $io->writeln('');
         }
 
         $box->signUsingFile($key, $passphrase);
     }
 
-    private function correctPermissions(string $path, Configuration $config, CompileLogger $logger): void
+    private function correctPermissions(string $path, Configuration $config, CompilerLogger $logger): void
     {
         if (null !== ($chmod = $config->getFileMode())) {
             $logger->log(
-                CompileLogger::QUESTION_MARK_PREFIX,
+                CompilerLogger::QUESTION_MARK_PREFIX,
                 sprintf(
                     'Setting file permissions to <comment>%s</comment>',
                     '0'.decoct($chmod)
@@ -765,8 +706,12 @@ EOF
         }
     }
 
-    private function createStub(Configuration $config, ?string $main, bool $checkRequirements, CompileLogger $logger): string
-    {
+    private function createStub(
+        Configuration $config,
+        ?string $main,
+        bool $checkRequirements,
+        CompilerLogger $logger
+    ): string {
         $stub = StubGenerator::create()
             ->alias($config->getAlias())
             ->index($main)
@@ -776,7 +721,7 @@ EOF
 
         if (null !== ($shebang = $config->getShebang())) {
             $logger->log(
-                CompileLogger::MINUS_PREFIX,
+                CompilerLogger::MINUS_PREFIX,
                 sprintf(
                     'Using shebang line: %s',
                     $shebang
@@ -786,14 +731,14 @@ EOF
             $stub->shebang($shebang);
         } else {
             $logger->log(
-                CompileLogger::MINUS_PREFIX,
+                CompilerLogger::MINUS_PREFIX,
                 'No shebang line'
             );
         }
 
         if (null !== ($bannerPath = $config->getStubBannerPath())) {
             $logger->log(
-                CompileLogger::MINUS_PREFIX,
+                CompilerLogger::MINUS_PREFIX,
                 sprintf(
                     'Using custom banner from file: %s',
                     $bannerPath
@@ -803,7 +748,7 @@ EOF
             $stub->banner($config->getStubBannerContents());
         } elseif (null !== ($banner = $config->getStubBannerContents())) {
             $logger->log(
-                CompileLogger::MINUS_PREFIX,
+                CompilerLogger::MINUS_PREFIX,
                 'Using banner:'
             );
 
@@ -811,7 +756,7 @@ EOF
 
             foreach ($bannerLines as $bannerLine) {
                 $logger->log(
-                    CompileLogger::CHEVRON_PREFIX,
+                    CompilerLogger::CHEVRON_PREFIX,
                     $bannerLine
                 );
             }
@@ -822,7 +767,7 @@ EOF
         return $stub->generate();
     }
 
-    private function logMap(MapFile $fileMapper, CompileLogger $logger): void
+    private function logMap(MapFile $fileMapper, CompilerLogger $logger): void
     {
         $map = $fileMapper->getMap();
 
@@ -831,7 +776,7 @@ EOF
         }
 
         $logger->log(
-            CompileLogger::QUESTION_MARK_PREFIX,
+            CompilerLogger::QUESTION_MARK_PREFIX,
             'Mapping paths'
         );
 
@@ -843,7 +788,7 @@ EOF
                 }
 
                 $logger->log(
-                    CompileLogger::MINUS_PREFIX,
+                    CompilerLogger::MINUS_PREFIX,
                     sprintf(
                         '%s <info>></info> %s',
                         $match,
@@ -856,14 +801,14 @@ EOF
 
     private function logEndBuilding(
         Configuration $config,
-        CompileLogger $logger,
-        SymfonyStyle $io,
+        CompilerLogger $logger,
+        IO $io,
         Box $box,
         string $path,
         float $startTime
     ): void {
         $logger->log(
-            CompileLogger::STAR_PREFIX,
+            CompilerLogger::STAR_PREFIX,
             'Done.'
         );
         $io->newLine();
@@ -884,10 +829,10 @@ EOF
 
         $io->comment(
             sprintf(
-                '<info>Memory usage: %.2fMB (peak: %.2fMB), time: %.2fs<info>',
-                round(memory_get_usage() / 1024 / 1024, 2),
-                round(memory_get_peak_usage() / 1024 / 1024, 2),
-                round(microtime(true) - $startTime, 2)
+                '<info>Memory usage: %s (peak: %s), time: %s<info>',
+                format_size(memory_get_usage()),
+                format_size(memory_get_peak_usage()),
+                format_time(microtime(true) - $startTime)
             )
         );
     }
@@ -895,6 +840,8 @@ EOF
     private function generateDockerFile(OutputInterface $output): void
     {
         $generateDockerFileCommand = $this->getApplication()->find('docker');
+
+        Assertion::isInstanceOf($generateDockerFileCommand, GenerateDockerFile::class);
 
         $input = new StringInput('');
         $input->setInteractive(false);

@@ -16,10 +16,11 @@ namespace KevinGH\Box\PhpScoper;
 
 use Humbug\PhpScoper\Scoper;
 use Humbug\PhpScoper\Whitelist;
-use KevinGH\Box\Compactor\PhpScoper;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\Prophecy\ObjectProphecy;
+use function serialize;
+use function unserialize;
 
 /**
  * @covers \KevinGH\Box\PhpScoper\SimpleScoper
@@ -40,7 +41,7 @@ JSON;
         $whitelist = Whitelist::create(true, true, true, 'Whitelisted\Foo');
         $patchers = [];
 
-        /** @var ObjectProphecy|PhpScoper $phpScoperProphecy */
+        /** @var ObjectProphecy&Scoper $phpScoperProphecy */
         $phpScoperProphecy = $this->prophesize(Scoper::class);
         $phpScoperProphecy
             ->scope($file, $contents, $prefix, $patchers, $whitelist)
@@ -48,12 +49,10 @@ JSON;
                 $expected = 'Scoped file'
             )
         ;
-        /** @var PhpScoper $phpScoper */
+        /** @var Scoper $phpScoper */
         $phpScoper = $phpScoperProphecy->reveal();
 
-        $scoper = new SimpleScoper($phpScoper, $prefix, $whitelist, $patchers);
-
-        $actual = $scoper->scope($file, $contents);
+        $actual = (new SimpleScoper($phpScoper, $prefix, $whitelist, $patchers))->scope($file, $contents);
 
         $this->assertSame($expected, $actual);
 
@@ -85,5 +84,20 @@ JSON;
 
         $this->assertSame($prefix, $scoper->getPrefix());
         $this->assertSame($newWhitelist, $scoper->getWhitelist());
+    }
+
+    public function test_it_is_serializable(): void
+    {
+        $scoper = new SimpleScoper(
+            new FakePhpScoper(),
+            'HumbugBox',
+            Whitelist::create(true, true, true, 'Whitelisted\Foo'),
+            []
+        );
+
+        $this->assertEquals(
+            $scoper,
+            unserialize(serialize($scoper))
+        );
     }
 }
