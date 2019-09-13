@@ -13,6 +13,13 @@ namespace PackageVersions;
 final class Versions
 {
     public const ROOT_PACKAGE_NAME = '__root__';
+    /**
+     * Array of all available composer packages.
+     * Dont read this array from your calling code, but use the \PackageVersions\Versions::getVersion() method instead.
+     *
+     * @var array<string, string>
+     * @internal
+     */
     public const VERSIONS          = array (
   'amphp/amp' => 'v2.2.0@c6a775a6c9fdd9ca4c909647a19b02d2d11a0568',
   'amphp/byte-stream' => 'v1.6.1@47908f8e8bb2da8af4e59028200758477bc927ea',
@@ -42,15 +49,15 @@ final class Versions
   'jetbrains/phpstorm-stubs' => 'v2019.1@9e309771f362e979ecfb429303ad7a402c657234',
   'justinrainbow/json-schema' => '5.2.8@dcb6e1006bb5fd1e392b4daa68932880f37550d4',
   'nikic/iter' => 'v2.0.0@1417341030a43fba0764486f7ad49ccc7b76e73f',
-  'nikic/php-parser' => 'v4.2.3@e612609022e935f3d0337c1295176505b41188c8',
-  'ocramius/package-versions' => '1.4.0@a4d4b60d0e60da2487bd21a2c6ac089f85570dbb',
-  'opis/closure' => '3.3.1@92927e26d7fc3f271efe1f55bdbb073fbb2f0722',
+  'nikic/php-parser' => 'v4.2.4@97e59c7a16464196a8b9c77c47df68e4a39a45c4',
+  'ocramius/package-versions' => '1.5.1@1d32342b8c1eb27353c8887c366147b4c2da673c',
+  'opis/closure' => '3.4.0@60a97fff133b1669a5b1776aa8ab06db3f3962b7',
   'paragonie/constant_time_encoding' => 'v2.2.3@55af0dc01992b4d0da7f6372e2eac097bbbaffdb',
   'paragonie/pharaoh' => 'v0.5.0@060418e946de2f39a3618ad70d9b6d0a61437b83',
   'paragonie/random_compat' => 'v9.99.99@84b4dfb120c6f9b4ff7b3685f9b8f1aa365a0c95',
-  'paragonie/sodium_compat' => 'v1.10.1@5115fa44886d1c2785d2f135ef4626db868eac4b',
+  'paragonie/sodium_compat' => 'v1.11.1@a9f968bc99485f85f9303a8524c3485a7e87bc15',
   'phpdocumentor/reflection-common' => '1.0.1@21bdeb5f65d7ebf9f43b1b25d404f87deab5bfb6',
-  'phpdocumentor/reflection-docblock' => '4.3.1@bdd9f737ebc2a01c06ea7ff4308ec6697db9b53c',
+  'phpdocumentor/reflection-docblock' => '4.3.2@b83ff7cfcfee7827e1e78b637a5904fe6a96698e',
   'phpdocumentor/type-resolver' => '0.4.0@9c977708995954784726e25d0cd1dddf4e65b0f7',
   'phpseclib/phpseclib' => '2.0.21@9f1287e68b3f283339a9f98f67515dd619e5bf9d',
   'psr/container' => '1.0.0@b7ce3b176482dbbc1245ebf52b181af44c2cf55f',
@@ -71,7 +78,7 @@ final class Versions
   'ulrichsg/getopt-php' => '3.2.2@9df490db25bd192d074f5de4210e232a8ddbeda0',
   'webmozart/assert' => '1.5.0@88e6d84706d09a236046d686bbea96f07b3a34f4',
   'webmozart/path-util' => '2.3.0@d939f7edc24c9a1bb9c0dee5cb05d8e859490725',
-  '__root__' => 'dev-master@c7fc82ccefb221f6aa03490bbcb08f34e58f2761',
+  '__root__' => 'dev-master@630ad70bf3821089aa4aa9e8a08c9e83776cf06c',
 );
 
     private function __construct()
@@ -80,6 +87,8 @@ final class Versions
 
     /**
      * @throws \OutOfBoundsException If a version cannot be located.
+     *
+     * @psalm-param key-of<self::VERSIONS> $packageName
      */
     public static function getVersion(string $packageName) : string
     {
@@ -88,7 +97,7 @@ final class Versions
         }
 
         throw new \OutOfBoundsException(
-            'Required package "' . $packageName . '" is not installed: cannot detect its version'
+            'Required package "' . $packageName . '" is not installed: check your ./vendor/composer/installed.json and/or ./composer.lock files'
         );
     }
 }
