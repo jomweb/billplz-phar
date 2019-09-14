@@ -1,8 +1,0 @@
-{
-    "main": "src/Main.php",
-    "directories": [
-        "src/",
-        "vendor/beberlei/"
-    ],
-    "dump-autoload": true
-}

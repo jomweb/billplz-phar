@@ -1,6 +1,0 @@
-{
-    "require": {
-        "ext-phar": "*",
-        "ext-pdo_dblib": "*"
-    }
-}

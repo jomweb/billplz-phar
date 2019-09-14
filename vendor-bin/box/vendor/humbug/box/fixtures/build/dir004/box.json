@@ -1,6 +1,0 @@
-{
-    "files": ["test.php"],
-    "main": "test.php",
-    "stub": "stub.php"
-}
-

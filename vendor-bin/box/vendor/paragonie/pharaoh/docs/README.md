@@ -1,3 +1,0 @@
-# Pharaoh Documentation
-
-TODO
