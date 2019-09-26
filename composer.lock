@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "839d582a76916d1a994834c5e4844622",
+    "content-hash": "593b735df7fd2460cb1261d41646b08e",
     "packages": [
         {
             "name": "clue/stream-filter",
@@ -342,16 +342,16 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v3.2.0",
+            "version": "v3.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "4728155d612c95fa0e4da33a614bde725bdf5330"
+                "reference": "9b14d73ab4a682a7147293fa8ea9fad1769b79ee"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/4728155d612c95fa0e4da33a614bde725bdf5330",
-                "reference": "4728155d612c95fa0e4da33a614bde725bdf5330",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/9b14d73ab4a682a7147293fa8ea9fad1769b79ee",
+                "reference": "9b14d73ab4a682a7147293fa8ea9fad1769b79ee",
                 "shasum": ""
             },
             "require": {
@@ -369,7 +369,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "3.2-dev"
+                    "dev-master": "4.0-dev"
                 }
             },
             "autoload": {
@@ -388,7 +388,7 @@
                 }
             ],
             "description": "PHP Agnostic library for working with BillPlz API",
-            "time": "2019-08-28T08:09:23+00:00"
+            "time": "2019-09-25T23:06:15+00:00"
         },
         {
             "name": "jomweb/ringgit",

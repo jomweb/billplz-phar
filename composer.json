@@ -10,7 +10,7 @@
         }
     ],
     "require": {
-        "jomweb/billplz": "3.2.0",
+        "jomweb/billplz": "3.2.1",
         "php-http/guzzle6-adapter": "^2.0"
     },
     "require-dev": {
