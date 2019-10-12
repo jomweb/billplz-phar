@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "593b735df7fd2460cb1261d41646b08e",
+    "content-hash": "844015e79a445a376888f6c53f63cd34",
     "packages": [
         {
             "name": "clue/stream-filter",
@@ -342,21 +342,21 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v3.2.1",
+            "version": "v3.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "9b14d73ab4a682a7147293fa8ea9fad1769b79ee"
+                "reference": "26cc0126914596ba55374b2d97608157c814cb92"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/9b14d73ab4a682a7147293fa8ea9fad1769b79ee",
-                "reference": "9b14d73ab4a682a7147293fa8ea9fad1769b79ee",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/26cc0126914596ba55374b2d97608157c814cb92",
+                "reference": "26cc0126914596ba55374b2d97608157c814cb92",
                 "shasum": ""
             },
             "require": {
                 "jomweb/ringgit": "^2.1",
-                "laravie/codex": "^5.0",
+                "laravie/codex": "^5.1",
                 "laravie/codex-filter": "^1.0",
                 "php": ">=7.1",
                 "php-http/multipart-stream-builder": "^1.0"
@@ -388,7 +388,7 @@
                 }
             ],
             "description": "PHP Agnostic library for working with BillPlz API",
-            "time": "2019-09-25T23:06:15+00:00"
+            "time": "2019-10-12T08:21:37+00:00"
         },
         {
             "name": "jomweb/ringgit",
@@ -437,20 +437,20 @@
         },
         {
             "name": "laravie/codex",
-            "version": "v5.0.1",
+            "version": "v5.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex.git",
-                "reference": "97a1bbdd0d94ed352aad0e633b720730f57ad429"
+                "reference": "b0de0c4729baa48319c29dfbef4488abe990596f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex/zipball/97a1bbdd0d94ed352aad0e633b720730f57ad429",
-                "reference": "97a1bbdd0d94ed352aad0e633b720730f57ad429",
+                "url": "https://api.github.com/repos/laravie/codex/zipball/b0de0c4729baa48319c29dfbef4488abe990596f",
+                "reference": "b0de0c4729baa48319c29dfbef4488abe990596f",
                 "shasum": ""
             },
             "require": {
-                "laravie/codex-common": "^1.0.1",
+                "laravie/codex-common": "^1.2",
                 "php": ">=7.1"
             },
             "require-dev": {
@@ -468,7 +468,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "5.0-dev"
+                    "dev-master": "5.1-dev"
                 }
             },
             "autoload": {
@@ -487,20 +487,20 @@
                 }
             ],
             "description": "PHP library for building API Client SDK for PHP",
-            "time": "2019-05-30T12:41:10+00:00"
+            "time": "2019-10-11T13:34:13+00:00"
         },
         {
             "name": "laravie/codex-common",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex-common.git",
-                "reference": "28f7146e2e9a72865700b629c0a6cd39d40c6bcd"
+                "reference": "b161fdd152e9eb5a509cd8e132a1b580bbbf380c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex-common/zipball/28f7146e2e9a72865700b629c0a6cd39d40c6bcd",
-                "reference": "28f7146e2e9a72865700b629c0a6cd39d40c6bcd",
+                "url": "https://api.github.com/repos/laravie/codex-common/zipball/b161fdd152e9eb5a509cd8e132a1b580bbbf380c",
+                "reference": "b161fdd152e9eb5a509cd8e132a1b580bbbf380c",
                 "shasum": ""
             },
             "require": {
@@ -519,7 +519,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.1-dev"
+                    "dev-master": "1.2-dev"
                 }
             },
             "autoload": {
@@ -541,7 +541,7 @@
                 }
             ],
             "description": "Common PHP library for building API Client SDK for PHP",
-            "time": "2019-07-09T01:31:38+00:00"
+            "time": "2019-10-11T13:14:49+00:00"
         },
         {
             "name": "laravie/codex-filter",
@@ -1345,7 +1345,7 @@
         },
         {
             "name": "symfony/options-resolver",
-            "version": "v4.3.4",
+            "version": "v4.3.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/options-resolver.git",
