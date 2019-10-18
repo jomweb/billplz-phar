@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "844015e79a445a376888f6c53f63cd34",
+    "content-hash": "c04d02bd91cf1c2f32a7ab42c4d5027d",
     "packages": [
         {
             "name": "clue/stream-filter",
@@ -342,16 +342,16 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v3.3.0",
+            "version": "v3.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "26cc0126914596ba55374b2d97608157c814cb92"
+                "reference": "efb002fa5c0a76544d19a3cd3e65f73e69cf2851"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/26cc0126914596ba55374b2d97608157c814cb92",
-                "reference": "26cc0126914596ba55374b2d97608157c814cb92",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/efb002fa5c0a76544d19a3cd3e65f73e69cf2851",
+                "reference": "efb002fa5c0a76544d19a3cd3e65f73e69cf2851",
                 "shasum": ""
             },
             "require": {
@@ -388,7 +388,7 @@
                 }
             ],
             "description": "PHP Agnostic library for working with BillPlz API",
-            "time": "2019-10-12T08:21:37+00:00"
+            "time": "2019-10-18T02:52:42+00:00"
         },
         {
             "name": "jomweb/ringgit",
