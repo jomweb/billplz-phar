@@ -60,27 +60,28 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "6.3.3",
+            "version": "6.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "407b0cb880ace85c9b63c5f9551db498cb2d50ba"
+                "reference": "0895c932405407fd3a7368b6910c09a24d26db11"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/407b0cb880ace85c9b63c5f9551db498cb2d50ba",
-                "reference": "407b0cb880ace85c9b63c5f9551db498cb2d50ba",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/0895c932405407fd3a7368b6910c09a24d26db11",
+                "reference": "0895c932405407fd3a7368b6910c09a24d26db11",
                 "shasum": ""
             },
             "require": {
+                "ext-json": "*",
                 "guzzlehttp/promises": "^1.0",
-                "guzzlehttp/psr7": "^1.4",
+                "guzzlehttp/psr7": "^1.6.1",
                 "php": ">=5.5"
             },
             "require-dev": {
                 "ext-curl": "*",
                 "phpunit/phpunit": "^4.8.35 || ^5.7 || ^6.4 || ^7.0",
-                "psr/log": "^1.0"
+                "psr/log": "^1.1"
             },
             "suggest": {
                 "psr/log": "Required for using the Log middleware"
@@ -92,12 +93,12 @@
                 }
             },
             "autoload": {
-                "files": [
-                    "src/functions_include.php"
-                ],
                 "psr-4": {
                     "GuzzleHttp\\": "src/"
-                }
+                },
+                "files": [
+                    "src/functions_include.php"
+                ]
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
@@ -121,7 +122,7 @@
                 "rest",
                 "web service"
             ],
-            "time": "2018-04-22T15:46:56+00:00"
+            "time": "2019-10-23T15:58:00+00:00"
         },
         {
             "name": "guzzlehttp/promises",
@@ -437,16 +438,16 @@
         },
         {
             "name": "laravie/codex",
-            "version": "v5.1.0",
+            "version": "v5.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex.git",
-                "reference": "b0de0c4729baa48319c29dfbef4488abe990596f"
+                "reference": "fea3307cd0eca65926ecfe550bfe41d3ddbe3589"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex/zipball/b0de0c4729baa48319c29dfbef4488abe990596f",
-                "reference": "b0de0c4729baa48319c29dfbef4488abe990596f",
+                "url": "https://api.github.com/repos/laravie/codex/zipball/fea3307cd0eca65926ecfe550bfe41d3ddbe3589",
+                "reference": "fea3307cd0eca65926ecfe550bfe41d3ddbe3589",
                 "shasum": ""
             },
             "require": {
@@ -487,7 +488,7 @@
                 }
             ],
             "description": "PHP library for building API Client SDK for PHP",
-            "time": "2019-10-11T13:34:13+00:00"
+            "time": "2019-11-03T12:30:50+00:00"
         },
         {
             "name": "laravie/codex-common",
@@ -545,16 +546,16 @@
         },
         {
             "name": "laravie/codex-filter",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex-filter.git",
-                "reference": "52fdb8d22c036386aa2f704d6c7d2753b3e0b06c"
+                "reference": "53eb87fd70a6ad68c7f4251f969b16e56febe61f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex-filter/zipball/52fdb8d22c036386aa2f704d6c7d2753b3e0b06c",
-                "reference": "52fdb8d22c036386aa2f704d6c7d2753b3e0b06c",
+                "url": "https://api.github.com/repos/laravie/codex-filter/zipball/53eb87fd70a6ad68c7f4251f969b16e56febe61f",
+                "reference": "53eb87fd70a6ad68c7f4251f969b16e56febe61f",
                 "shasum": ""
             },
             "require": {
@@ -587,7 +588,7 @@
                 }
             ],
             "description": "Content filtering for Laravie Codex",
-            "time": "2019-03-27T23:13:04+00:00"
+            "time": "2019-10-30T22:45:30+00:00"
         },
         {
             "name": "moneyphp/money",
@@ -1345,16 +1346,16 @@
         },
         {
             "name": "symfony/options-resolver",
-            "version": "v4.3.5",
+            "version": "v4.3.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/options-resolver.git",
-                "reference": "81c2e120522a42f623233968244baebd6b36cb6a"
+                "reference": "f46c7fc8e207bd8a2188f54f8738f232533765a4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/81c2e120522a42f623233968244baebd6b36cb6a",
-                "reference": "81c2e120522a42f623233968244baebd6b36cb6a",
+                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/f46c7fc8e207bd8a2188f54f8738f232533765a4",
+                "reference": "f46c7fc8e207bd8a2188f54f8738f232533765a4",
                 "shasum": ""
             },
             "require": {
@@ -1395,7 +1396,7 @@
                 "configuration",
                 "options"
             ],
-            "time": "2019-08-08T09:29:19+00:00"
+            "time": "2019-10-28T20:59:01+00:00"
         }
     ],
     "packages-dev": [
