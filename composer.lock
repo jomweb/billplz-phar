@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f40aed306d4645ba654b9071659d878d",
+    "content-hash": "436cbdfe9e6503e887a4b797642925b2",
     "packages": [
         {
             "name": "clue/stream-filter",
@@ -60,16 +60,16 @@
         },
         {
             "name": "guzzlehttp/guzzle",
-            "version": "6.4.1",
+            "version": "6.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/guzzle.git",
-                "reference": "0895c932405407fd3a7368b6910c09a24d26db11"
+                "reference": "43ece0e75098b7ecd8d13918293029e555a50f82"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/0895c932405407fd3a7368b6910c09a24d26db11",
-                "reference": "0895c932405407fd3a7368b6910c09a24d26db11",
+                "url": "https://api.github.com/repos/guzzle/guzzle/zipball/43ece0e75098b7ecd8d13918293029e555a50f82",
+                "reference": "43ece0e75098b7ecd8d13918293029e555a50f82",
                 "shasum": ""
             },
             "require": {
@@ -84,12 +84,13 @@
                 "psr/log": "^1.1"
             },
             "suggest": {
+                "ext-intl": "Required for Internationalized Domain Name (IDN) support",
                 "psr/log": "Required for using the Log middleware"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "6.3-dev"
+                    "dev-master": "6.5-dev"
                 }
             },
             "autoload": {
@@ -122,7 +123,7 @@
                 "rest",
                 "web service"
             ],
-            "time": "2019-10-23T15:58:00+00:00"
+            "time": "2019-12-23T11:57:10+00:00"
         },
         {
             "name": "guzzlehttp/promises",
@@ -343,29 +344,29 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v3.4.0",
+            "version": "v4.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "0a37a7c5d0ccbfcfa9fc9bb71ee6e2e63da3a740"
+                "reference": "e4914ff59a679c3bb187ff24b657a96e21b38e32"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/0a37a7c5d0ccbfcfa9fc9bb71ee6e2e63da3a740",
-                "reference": "0a37a7c5d0ccbfcfa9fc9bb71ee6e2e63da3a740",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/e4914ff59a679c3bb187ff24b657a96e21b38e32",
+                "reference": "e4914ff59a679c3bb187ff24b657a96e21b38e32",
                 "shasum": ""
             },
             "require": {
                 "jomweb/ringgit": "^2.1",
                 "laravie/codex": "^5.1",
                 "laravie/codex-filter": "^1.0",
-                "php": ">=7.1",
+                "php": ">=7.2",
                 "php-http/multipart-stream-builder": "^1.0"
             },
             "require-dev": {
-                "mockery/mockery": "^1.2",
+                "mockery/mockery": "^1.3.1",
                 "php-http/curl-client": "^2.0",
-                "phpunit/phpunit": "^7.5 || ^8.0"
+                "phpunit/phpunit": "^8.4"
             },
             "type": "library",
             "extra": {
@@ -389,35 +390,30 @@
                 }
             ],
             "description": "PHP Agnostic library for working with BillPlz API",
-            "time": "2019-11-28T04:07:34+00:00"
+            "time": "2020-01-06T01:42:46+00:00"
         },
         {
             "name": "jomweb/ringgit",
-            "version": "v2.1.1",
+            "version": "v2.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/ringgit.git",
-                "reference": "b7709a1de0496faf324c8f4b3094020958ea3ca1"
+                "reference": "5285bb68c2149b79cc4117ed32305786a94fa322"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/ringgit/zipball/b7709a1de0496faf324c8f4b3094020958ea3ca1",
-                "reference": "b7709a1de0496faf324c8f4b3094020958ea3ca1",
+                "url": "https://api.github.com/repos/jomweb/ringgit/zipball/5285bb68c2149b79cc4117ed32305786a94fa322",
+                "reference": "5285bb68c2149b79cc4117ed32305786a94fa322",
                 "shasum": ""
             },
             "require": {
-                "moneyphp/money": "^3.1",
-                "php": ">=7.1"
+                "moneyphp/money": "^3.2",
+                "php": ">=7.2"
             },
             "require-dev": {
-                "phpunit/phpunit": "^7.5 || ^8.0"
+                "phpunit/phpunit": "^8.4"
             },
             "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "2.1-dev"
-                }
-            },
             "autoload": {
                 "psr-4": {
                     "Duit\\": "src/"
@@ -434,7 +430,7 @@
                 }
             ],
             "description": "Malaysia Ringgit implementation on top of Money PHP",
-            "time": "2019-03-04T04:35:45+00:00"
+            "time": "2019-12-17T02:51:47+00:00"
         },
         {
             "name": "laravie/codex",
@@ -592,16 +588,16 @@
         },
         {
             "name": "moneyphp/money",
-            "version": "v3.2.1",
+            "version": "v3.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/moneyphp/money.git",
-                "reference": "f6085de6c565e98d2f9a7311a605987b54e06d5e"
+                "reference": "2a9b09bb5435aa54a404f626b9284ae64cb88af2"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/moneyphp/money/zipball/f6085de6c565e98d2f9a7311a605987b54e06d5e",
-                "reference": "f6085de6c565e98d2f9a7311a605987b54e06d5e",
+                "url": "https://api.github.com/repos/moneyphp/money/zipball/2a9b09bb5435aa54a404f626b9284ae64cb88af2",
+                "reference": "2a9b09bb5435aa54a404f626b9284ae64cb88af2",
                 "shasum": ""
             },
             "require": {
@@ -616,12 +612,12 @@
                 "ext-intl": "*",
                 "florianv/exchanger": "^1.0",
                 "florianv/swap": "^3.0",
-                "leanphp/phpspec-code-coverage": "^3.0 || ^4.0",
-                "moneyphp/iso-currencies": "^3.0",
+                "friends-of-phpspec/phpspec-code-coverage": "^3.1.1 || ^4.3",
+                "moneyphp/iso-currencies": "^3.2.1",
                 "php-http/message": "^1.4",
                 "php-http/mock-client": "^1.0.0",
-                "phpspec/phpspec": "^3.0",
-                "phpunit/phpunit": "^5.7 || ^6.4 || ^7.0",
+                "phpspec/phpspec": "^3.4.3",
+                "phpunit/phpunit": "^5.7.27 || ^6.5.14 || ^7.5.18 || ^8.5",
                 "psr/cache": "^1.0",
                 "symfony/phpunit-bridge": "^4"
             },
@@ -636,7 +632,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "3.0-dev"
+                    "dev-master": "3.x-dev"
                 }
             },
             "autoload": {
@@ -650,13 +646,13 @@
             ],
             "authors": [
                 {
-                    "name": "Márk Sági-Kazár",
-                    "email": "mark.sagikazar@gmail.com"
-                },
-                {
                     "name": "Mathias Verraes",
                     "email": "mathias@verraes.net",
                     "homepage": "http://verraes.net"
+                },
+                {
+                    "name": "Márk Sági-Kazár",
+                    "email": "mark.sagikazar@gmail.com"
                 },
                 {
                     "name": "Frederik Bosch",
@@ -670,7 +666,7 @@
                 "money",
                 "vo"
             ],
-            "time": "2019-02-07T18:01:35+00:00"
+            "time": "2019-12-27T21:58:31+00:00"
         },
         {
             "name": "php-http/client-common",
@@ -740,16 +736,16 @@
         },
         {
             "name": "php-http/discovery",
-            "version": "1.7.0",
+            "version": "1.7.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-http/discovery.git",
-                "reference": "e822f86a6983790aa17ab13aa7e69631e86806b6"
+                "reference": "82dbef649ccffd8e4f22e1953c3a5265992b83c0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-http/discovery/zipball/e822f86a6983790aa17ab13aa7e69631e86806b6",
-                "reference": "e822f86a6983790aa17ab13aa7e69631e86806b6",
+                "url": "https://api.github.com/repos/php-http/discovery/zipball/82dbef649ccffd8e4f22e1953c3a5265992b83c0",
+                "reference": "82dbef649ccffd8e4f22e1953c3a5265992b83c0",
                 "shasum": ""
             },
             "require": {
@@ -801,7 +797,7 @@
                 "message",
                 "psr7"
             ],
-            "time": "2019-06-30T09:04:27+00:00"
+            "time": "2020-01-03T11:25:47+00:00"
         },
         {
             "name": "php-http/guzzle6-adapter",
@@ -868,16 +864,16 @@
         },
         {
             "name": "php-http/httplug",
-            "version": "v2.0.0",
+            "version": "2.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-http/httplug.git",
-                "reference": "b3842537338c949f2469557ef4ad4bdc47b58603"
+                "reference": "72d2b129a48f0490d55b7f89be0d6aa0597ffb06"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-http/httplug/zipball/b3842537338c949f2469557ef4ad4bdc47b58603",
-                "reference": "b3842537338c949f2469557ef4ad4bdc47b58603",
+                "url": "https://api.github.com/repos/php-http/httplug/zipball/72d2b129a48f0490d55b7f89be0d6aa0597ffb06",
+                "reference": "72d2b129a48f0490d55b7f89be0d6aa0597ffb06",
                 "shasum": ""
             },
             "require": {
@@ -887,13 +883,13 @@
                 "psr/http-message": "^1.0"
             },
             "require-dev": {
-                "henrikbjorn/phpspec-code-coverage": "^1.0",
-                "phpspec/phpspec": "^2.4"
+                "friends-of-phpspec/phpspec-code-coverage": "^4.1",
+                "phpspec/phpspec": "^4.3.4|^5.0|^6.0"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "2.0.x-dev"
+                    "dev-master": "2.x-dev"
                 }
             },
             "autoload": {
@@ -921,7 +917,7 @@
                 "client",
                 "http"
             ],
-            "time": "2018-10-31T09:14:44+00:00"
+            "time": "2019-12-27T10:07:11+00:00"
         },
         {
             "name": "php-http/message",
@@ -1346,25 +1342,25 @@
         },
         {
             "name": "symfony/options-resolver",
-            "version": "v4.4.0",
+            "version": "v5.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/options-resolver.git",
-                "reference": "2be23e63f33de16b49294ea6581f462932a77e2f"
+                "reference": "1ad3d0ffc00cc1990e5c9c7bb6b81578ec3f5f68"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/2be23e63f33de16b49294ea6581f462932a77e2f",
-                "reference": "2be23e63f33de16b49294ea6581f462932a77e2f",
+                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/1ad3d0ffc00cc1990e5c9c7bb6b81578ec3f5f68",
+                "reference": "1ad3d0ffc00cc1990e5c9c7bb6b81578ec3f5f68",
                 "shasum": ""
             },
             "require": {
-                "php": "^7.1.3"
+                "php": "^7.2.5"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "4.4-dev"
+                    "dev-master": "5.0-dev"
                 }
             },
             "autoload": {
@@ -1396,7 +1392,7 @@
                 "configuration",
                 "options"
             ],
-            "time": "2019-10-28T21:57:16+00:00"
+            "time": "2019-11-18T17:27:11+00:00"
         }
     ],
     "packages-dev": [
@@ -1448,6 +1444,6 @@
     "platform": [],
     "platform-dev": [],
     "platform-overrides": {
-        "php": "7.1.3"
+        "php": "7.2.5"
     }
 }
