@@ -394,24 +394,24 @@
         },
         {
             "name": "jomweb/ringgit",
-            "version": "v2.2.0",
+            "version": "v2.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/ringgit.git",
-                "reference": "5285bb68c2149b79cc4117ed32305786a94fa322"
+                "reference": "d4e01022d07f666c7a7512aec178c0f266a7cf38"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/ringgit/zipball/5285bb68c2149b79cc4117ed32305786a94fa322",
-                "reference": "5285bb68c2149b79cc4117ed32305786a94fa322",
+                "url": "https://api.github.com/repos/jomweb/ringgit/zipball/d4e01022d07f666c7a7512aec178c0f266a7cf38",
+                "reference": "d4e01022d07f666c7a7512aec178c0f266a7cf38",
                 "shasum": ""
             },
             "require": {
-                "moneyphp/money": "^3.2",
+                "moneyphp/money": "^3.3",
                 "php": ">=7.2"
             },
             "require-dev": {
-                "phpunit/phpunit": "^8.4"
+                "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
             "autoload": {
@@ -430,42 +430,42 @@
                 }
             ],
             "description": "Malaysia Ringgit implementation on top of Money PHP",
-            "time": "2019-12-17T02:51:47+00:00"
+            "time": "2020-01-30T12:04:07+00:00"
         },
         {
             "name": "laravie/codex",
-            "version": "v5.1.1",
+            "version": "v5.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex.git",
-                "reference": "fea3307cd0eca65926ecfe550bfe41d3ddbe3589"
+                "reference": "274c695557541b79042c7cd382ab8784a76e074f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex/zipball/fea3307cd0eca65926ecfe550bfe41d3ddbe3589",
-                "reference": "fea3307cd0eca65926ecfe550bfe41d3ddbe3589",
+                "url": "https://api.github.com/repos/laravie/codex/zipball/274c695557541b79042c7cd382ab8784a76e074f",
+                "reference": "274c695557541b79042c7cd382ab8784a76e074f",
                 "shasum": ""
             },
             "require": {
-                "laravie/codex-common": "^1.2",
-                "php": ">=7.1"
+                "laravie/codex-common": "^1.3",
+                "php": ">=7.2"
             },
             "require-dev": {
                 "laravie/codex-filter": "^1.0",
-                "mockery/mockery": "^1.0",
+                "mockery/mockery": "^1.3.1",
                 "php-http/curl-client": "^2.0",
                 "php-http/multipart-stream-builder": "^1.0",
-                "phpunit/phpunit": "^7.5 || ^8.0"
+                "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "suggest": {
                 "laravie/codex-filter": "Content filtering for Laravie Codex (^1.0)",
                 "php-http/multipart-stream-builder": "Allow to send multipart form request (^1.0)",
-                "phpunit/phpunit": "Allow to use Codex Faker request during testing (^7.5 || ^8.0)"
+                "phpunit/phpunit": "Allow to use Codex Faker request during testing (^8.4 || ^9.0)"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "5.1-dev"
+                    "dev-master": "5.2-dev"
                 }
             },
             "autoload": {
@@ -484,41 +484,36 @@
                 }
             ],
             "description": "PHP library for building API Client SDK for PHP",
-            "time": "2019-11-03T12:30:50+00:00"
+            "time": "2020-02-05T01:00:49+00:00"
         },
         {
             "name": "laravie/codex-common",
-            "version": "v1.2.0",
+            "version": "v1.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex-common.git",
-                "reference": "b161fdd152e9eb5a509cd8e132a1b580bbbf380c"
+                "reference": "da507f2d743ddea83ffda9d7f96d13f62b382152"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex-common/zipball/b161fdd152e9eb5a509cd8e132a1b580bbbf380c",
-                "reference": "b161fdd152e9eb5a509cd8e132a1b580bbbf380c",
+                "url": "https://api.github.com/repos/laravie/codex-common/zipball/da507f2d743ddea83ffda9d7f96d13f62b382152",
+                "reference": "da507f2d743ddea83ffda9d7f96d13f62b382152",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/psr7": "^1.6",
                 "http-interop/http-factory-guzzle": "^1.0",
-                "php": ">=7.1",
+                "php": ">=7.2",
                 "php-http/client-common": "^2.0",
                 "php-http/client-implementation": "^1.0",
                 "php-http/discovery": "^1.7"
             },
             "require-dev": {
-                "mockery/mockery": "^1.2",
+                "mockery/mockery": "^1.3.1",
                 "php-http/curl-client": "^2.0",
-                "phpunit/phpunit": "^7.5 || ^8.0"
+                "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.2-dev"
-                }
-            },
             "autoload": {
                 "psr-4": {
                     "Laravie\\Codex\\Common\\": "src/Common/",
@@ -538,34 +533,35 @@
                 }
             ],
             "description": "Common PHP library for building API Client SDK for PHP",
-            "time": "2019-10-11T13:14:49+00:00"
+            "time": "2020-02-03T00:57:01+00:00"
         },
         {
             "name": "laravie/codex-filter",
-            "version": "v1.0.1",
+            "version": "v1.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex-filter.git",
-                "reference": "53eb87fd70a6ad68c7f4251f969b16e56febe61f"
+                "reference": "633c09cc1a6ae0c9d134fbee6960667f47a37ad4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex-filter/zipball/53eb87fd70a6ad68c7f4251f969b16e56febe61f",
-                "reference": "53eb87fd70a6ad68c7f4251f969b16e56febe61f",
+                "url": "https://api.github.com/repos/laravie/codex-filter/zipball/633c09cc1a6ae0c9d134fbee6960667f47a37ad4",
+                "reference": "633c09cc1a6ae0c9d134fbee6960667f47a37ad4",
                 "shasum": ""
             },
             "require": {
                 "igorw/get-in": "^1.0",
-                "laravie/codex-common": "^1.0"
+                "laravie/codex-common": "^1.0",
+                "php": ">=7.2"
             },
             "require-dev": {
-                "mockery/mockery": "^1.0",
-                "phpunit/phpunit": "^7.5 || ^8.0"
+                "mockery/mockery": "^1.3.1",
+                "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.0-dev"
+                    "dev-master": "1.1-dev"
                 }
             },
             "autoload": {
@@ -584,7 +580,7 @@
                 }
             ],
             "description": "Content filtering for Laravie Codex",
-            "time": "2019-10-30T22:45:30+00:00"
+            "time": "2020-02-02T13:32:05+00:00"
         },
         {
             "name": "moneyphp/money",
@@ -1342,16 +1338,16 @@
         },
         {
             "name": "symfony/options-resolver",
-            "version": "v5.0.2",
+            "version": "v5.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/options-resolver.git",
-                "reference": "1ad3d0ffc00cc1990e5c9c7bb6b81578ec3f5f68"
+                "reference": "b1ab86ce52b0c0abe031367a173005a025e30e04"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/1ad3d0ffc00cc1990e5c9c7bb6b81578ec3f5f68",
-                "reference": "1ad3d0ffc00cc1990e5c9c7bb6b81578ec3f5f68",
+                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/b1ab86ce52b0c0abe031367a173005a025e30e04",
+                "reference": "b1ab86ce52b0c0abe031367a173005a025e30e04",
                 "shasum": ""
             },
             "require": {
@@ -1392,7 +1388,7 @@
                 "configuration",
                 "options"
             ],
-            "time": "2019-11-18T17:27:11+00:00"
+            "time": "2020-01-04T14:08:26+00:00"
         }
     ],
     "packages-dev": [
