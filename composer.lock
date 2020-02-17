@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "436cbdfe9e6503e887a4b797642925b2",
+    "content-hash": "3110261830b03ac880f9745fd0c944b9",
     "packages": [
         {
             "name": "clue/stream-filter",
@@ -344,16 +344,16 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v4.0.0",
+            "version": "v4.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "e4914ff59a679c3bb187ff24b657a96e21b38e32"
+                "reference": "6449dcbb1b89fd9d98c1d68235b3801b1dc4ee25"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/e4914ff59a679c3bb187ff24b657a96e21b38e32",
-                "reference": "e4914ff59a679c3bb187ff24b657a96e21b38e32",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/6449dcbb1b89fd9d98c1d68235b3801b1dc4ee25",
+                "reference": "6449dcbb1b89fd9d98c1d68235b3801b1dc4ee25",
                 "shasum": ""
             },
             "require": {
@@ -366,12 +366,12 @@
             "require-dev": {
                 "mockery/mockery": "^1.3.1",
                 "php-http/curl-client": "^2.0",
-                "phpunit/phpunit": "^8.4"
+                "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "4.0-dev"
+                    "dev-master": "4.1-dev"
                 }
             },
             "autoload": {
@@ -390,7 +390,7 @@
                 }
             ],
             "description": "PHP Agnostic library for working with BillPlz API",
-            "time": "2020-01-06T01:42:46+00:00"
+            "time": "2020-02-17T14:15:32+00:00"
         },
         {
             "name": "jomweb/ringgit",
