@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "0b0e8eee66dfb63659187080dedabf12",
+    "content-hash": "486422076925ce30987f52731f4c879f",
     "packages": [
         {
             "name": "clue/stream-filter",
@@ -378,28 +378,28 @@
         },
         {
             "name": "jomweb/billplz",
-            "version": "v4.2.0",
+            "version": "v4.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jomweb/billplz.git",
-                "reference": "f53c1e4341a0c66ce4bc94a0bce1213e70e03d91"
+                "reference": "9dd29679b826ea5b0540c791c96617a6c5fcc4d7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jomweb/billplz/zipball/f53c1e4341a0c66ce4bc94a0bce1213e70e03d91",
-                "reference": "f53c1e4341a0c66ce4bc94a0bce1213e70e03d91",
+                "url": "https://api.github.com/repos/jomweb/billplz/zipball/9dd29679b826ea5b0540c791c96617a6c5fcc4d7",
+                "reference": "9dd29679b826ea5b0540c791c96617a6c5fcc4d7",
                 "shasum": ""
             },
             "require": {
-                "jomweb/ringgit": "^2.1",
-                "laravie/codex": "^5.1",
-                "laravie/codex-filter": "^1.0",
-                "php": ">=7.2",
+                "jomweb/ringgit": "^2.3.1",
+                "laravie/codex": "^5.3.1",
+                "laravie/codex-filter": "^1.2",
+                "php": "^7.2 || ^8.0",
                 "php-http/multipart-stream-builder": "^1.0"
             },
             "require-dev": {
                 "mockery/mockery": "^1.3.1",
-                "php-http/curl-client": "^2.0",
+                "php-http/guzzle7-adapter": "^0.1",
                 "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
@@ -426,7 +426,7 @@
             "description": "PHP Agnostic library for working with BillPlz API",
             "support": {
                 "issues": "https://github.com/jomweb/billplz/issues",
-                "source": "https://github.com/jomweb/billplz/tree/v4.2.0"
+                "source": "https://github.com/jomweb/billplz/tree/v4.3.1"
             },
             "funding": [
                 {
@@ -434,11 +434,11 @@
                     "type": "custom"
                 },
                 {
-                    "url": "https://www.patreon.com/crynobone",
-                    "type": "patreon"
+                    "url": "https://liberapay.com/crynobone",
+                    "type": "liberapay"
                 }
             ],
-            "time": "2020-04-03T00:15:27+00:00"
+            "time": "2020-12-28T15:07:14+00:00"
         },
         {
             "name": "jomweb/ringgit",
@@ -496,26 +496,27 @@
         },
         {
             "name": "laravie/codex",
-            "version": "v5.2.0",
+            "version": "v5.3.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex.git",
-                "reference": "274c695557541b79042c7cd382ab8784a76e074f"
+                "reference": "b4b1c9d08d8fe9041473607d69fe1b514a7edc73"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex/zipball/274c695557541b79042c7cd382ab8784a76e074f",
-                "reference": "274c695557541b79042c7cd382ab8784a76e074f",
+                "url": "https://api.github.com/repos/laravie/codex/zipball/b4b1c9d08d8fe9041473607d69fe1b514a7edc73",
+                "reference": "b4b1c9d08d8fe9041473607d69fe1b514a7edc73",
                 "shasum": ""
             },
             "require": {
-                "laravie/codex-common": "^1.3",
-                "php": ">=7.2"
+                "laravie/codex-common": "^1.4.2",
+                "php": "^7.2 || ^8.0"
             },
             "require-dev": {
-                "laravie/codex-filter": "^1.0",
+                "guzzlehttp/guzzle": "^7.0.1",
+                "laravie/codex-filter": "^1.2",
                 "mockery/mockery": "^1.3.1",
-                "php-http/curl-client": "^2.0",
+                "php-http/guzzle7-adapter": "^0.1",
                 "php-http/multipart-stream-builder": "^1.0",
                 "phpunit/phpunit": "^8.4 || ^9.0"
             },
@@ -527,7 +528,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "5.2-dev"
+                    "dev-master": "5.x-dev"
                 }
             },
             "autoload": {
@@ -548,35 +549,46 @@
             "description": "PHP library for building API Client SDK for PHP",
             "support": {
                 "issues": "https://github.com/laravie/codex/issues",
-                "source": "https://github.com/laravie/codex/tree/v5.2.0"
+                "source": "https://github.com/laravie/codex/tree/v5.3.1"
             },
-            "time": "2020-02-05T01:00:49+00:00"
+            "funding": [
+                {
+                    "url": "https://paypal.me/crynobone",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://liberapay.com/crynobone",
+                    "type": "liberapay"
+                }
+            ],
+            "time": "2020-12-28T15:02:02+00:00"
         },
         {
             "name": "laravie/codex-common",
-            "version": "v1.3.0",
+            "version": "v1.4.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex-common.git",
-                "reference": "da507f2d743ddea83ffda9d7f96d13f62b382152"
+                "reference": "3c7dc2cf079e47ed47d65894fc0be61deb4bb781"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex-common/zipball/da507f2d743ddea83ffda9d7f96d13f62b382152",
-                "reference": "da507f2d743ddea83ffda9d7f96d13f62b382152",
+                "url": "https://api.github.com/repos/laravie/codex-common/zipball/3c7dc2cf079e47ed47d65894fc0be61deb4bb781",
+                "reference": "3c7dc2cf079e47ed47d65894fc0be61deb4bb781",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/psr7": "^1.6",
                 "http-interop/http-factory-guzzle": "^1.0",
-                "php": ">=7.2",
+                "php": "^7.2 || ^8.0",
                 "php-http/client-common": "^2.0",
                 "php-http/client-implementation": "^1.0",
-                "php-http/discovery": "^1.7"
+                "php-http/discovery": "^1.13"
             },
             "require-dev": {
+                "guzzlehttp/guzzle": "^7.0.1",
                 "mockery/mockery": "^1.3.1",
-                "php-http/curl-client": "^2.0",
+                "php-http/guzzle7-adapter": "^0.1",
                 "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
@@ -601,31 +613,42 @@
             "description": "Common PHP library for building API Client SDK for PHP",
             "support": {
                 "issues": "https://github.com/laravie/codex-common/issues",
-                "source": "https://github.com/laravie/codex-common/tree/v1.3.0"
+                "source": "https://github.com/laravie/codex-common/tree/v1.4.2"
             },
-            "time": "2020-02-03T00:57:01+00:00"
+            "funding": [
+                {
+                    "url": "https://paypal.me/crynobone",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://liberapay.com/crynobone",
+                    "type": "liberapay"
+                }
+            ],
+            "time": "2020-12-28T14:20:47+00:00"
         },
         {
             "name": "laravie/codex-filter",
-            "version": "v1.1.0",
+            "version": "v1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/laravie/codex-filter.git",
-                "reference": "633c09cc1a6ae0c9d134fbee6960667f47a37ad4"
+                "reference": "e8d2f08c7ad331da5e4c59ffe25386a92936b041"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/laravie/codex-filter/zipball/633c09cc1a6ae0c9d134fbee6960667f47a37ad4",
-                "reference": "633c09cc1a6ae0c9d134fbee6960667f47a37ad4",
+                "url": "https://api.github.com/repos/laravie/codex-filter/zipball/e8d2f08c7ad331da5e4c59ffe25386a92936b041",
+                "reference": "e8d2f08c7ad331da5e4c59ffe25386a92936b041",
                 "shasum": ""
             },
             "require": {
                 "igorw/get-in": "^1.0",
-                "laravie/codex-common": "^1.0",
-                "php": ">=7.2"
+                "laravie/codex-common": "^1.4",
+                "php": "^7.2 || ^8.0"
             },
             "require-dev": {
                 "mockery/mockery": "^1.3.1",
+                "php-http/guzzle7-adapter": "^0.1",
                 "phpunit/phpunit": "^8.4 || ^9.0"
             },
             "type": "library",
@@ -652,9 +675,19 @@
             "description": "Content filtering for Laravie Codex",
             "support": {
                 "issues": "https://github.com/laravie/codex-filter/issues",
-                "source": "https://github.com/laravie/codex-filter/tree/v1.1.0"
+                "source": "https://github.com/laravie/codex-filter/tree/v1.2.0"
             },
-            "time": "2020-02-02T13:32:05+00:00"
+            "funding": [
+                {
+                    "url": "https://paypal.me/crynobone",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://liberapay.com/crynobone",
+                    "type": "liberapay"
+                }
+            ],
+            "time": "2020-12-28T13:17:26+00:00"
         },
         {
             "name": "moneyphp/money",
@@ -819,16 +852,16 @@
         },
         {
             "name": "php-http/discovery",
-            "version": "1.12.0",
+            "version": "1.13.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-http/discovery.git",
-                "reference": "4366bf1bc39b663aa87459bd725501d2f1988b6c"
+                "reference": "788f72d64c43dc361e7fcc7464c3d947c64984a7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-http/discovery/zipball/4366bf1bc39b663aa87459bd725501d2f1988b6c",
-                "reference": "4366bf1bc39b663aa87459bd725501d2f1988b6c",
+                "url": "https://api.github.com/repos/php-http/discovery/zipball/788f72d64c43dc361e7fcc7464c3d947c64984a7",
+                "reference": "788f72d64c43dc361e7fcc7464c3d947c64984a7",
                 "shasum": ""
             },
             "require": {
@@ -882,9 +915,9 @@
             ],
             "support": {
                 "issues": "https://github.com/php-http/discovery/issues",
-                "source": "https://github.com/php-http/discovery/tree/1.12.0"
+                "source": "https://github.com/php-http/discovery/tree/1.13.0"
             },
-            "time": "2020-09-22T13:31:04+00:00"
+            "time": "2020-11-27T14:49:42+00:00"
         },
         {
             "name": "php-http/guzzle6-adapter",
@@ -1535,21 +1568,22 @@
         },
         {
             "name": "symfony/options-resolver",
-            "version": "v5.1.8",
+            "version": "v5.2.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/options-resolver.git",
-                "reference": "c6a02905e4ffc7a1498e8ee019db2b477cd1cc02"
+                "reference": "87a2a4a766244e796dd9cb9d6f58c123358cd986"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/c6a02905e4ffc7a1498e8ee019db2b477cd1cc02",
-                "reference": "c6a02905e4ffc7a1498e8ee019db2b477cd1cc02",
+                "url": "https://api.github.com/repos/symfony/options-resolver/zipball/87a2a4a766244e796dd9cb9d6f58c123358cd986",
+                "reference": "87a2a4a766244e796dd9cb9d6f58c123358cd986",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.2.5",
                 "symfony/deprecation-contracts": "^2.1",
+                "symfony/polyfill-php73": "~1.0",
                 "symfony/polyfill-php80": "^1.15"
             },
             "type": "library",
@@ -1583,7 +1617,7 @@
                 "options"
             ],
             "support": {
-                "source": "https://github.com/symfony/options-resolver/tree/v5.1.8"
+                "source": "https://github.com/symfony/options-resolver/tree/v5.2.1"
             },
             "funding": [
                 {
@@ -1599,7 +1633,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2020-10-24T12:01:57+00:00"
+            "time": "2020-10-24T12:08:07+00:00"
         },
         {
             "name": "symfony/polyfill-intl-idn",
@@ -1831,6 +1865,85 @@
             ],
             "support": {
                 "source": "https://github.com/symfony/polyfill-php72/tree/v1.20.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2020-10-23T14:02:19+00:00"
+        },
+        {
+            "name": "symfony/polyfill-php73",
+            "version": "v1.20.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/polyfill-php73.git",
+                "reference": "8ff431c517be11c78c48a39a66d37431e26a6bed"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/polyfill-php73/zipball/8ff431c517be11c78c48a39a66d37431e26a6bed",
+                "reference": "8ff431c517be11c78c48a39a66d37431e26a6bed",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=7.1"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-main": "1.20-dev"
+                },
+                "thanks": {
+                    "name": "symfony/polyfill",
+                    "url": "https://github.com/symfony/polyfill"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Polyfill\\Php73\\": ""
+                },
+                "files": [
+                    "bootstrap.php"
+                ],
+                "classmap": [
+                    "Resources/stubs"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Nicolas Grekas",
+                    "email": "p@tchwork.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Symfony polyfill backporting some PHP 7.3+ features to lower PHP versions",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "compatibility",
+                "polyfill",
+                "portable",
+                "shim"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/polyfill-php73/tree/v1.20.0"
             },
             "funding": [
                 {
